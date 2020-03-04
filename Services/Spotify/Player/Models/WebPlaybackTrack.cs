@@ -10,6 +10,7 @@ namespace Caerostris.Services.Spotify.Player.Models
 {
     public class WebPlaybackTrack
     {
+        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         [JsonProperty("album")]
         public WebPlaybackAlbum? Album { get; set; }
 
@@ -34,10 +35,11 @@ namespace Caerostris.Services.Spotify.Player.Models
 
         [JsonProperty("is_playable")]
         public bool? IsPlayable { get; set; }
+        #pragma warning restore CS8618
 
         public FullTrack ApplyTo(FullTrack track)
         {
-            /// Sometimes different metadata is supplied by the two different APIs for the exact same track
+            /// Sometimes different metadata are supplied by the two different APIs for the exact same track
             if (!(track.Id.Equals(Id, StringComparison.InvariantCulture)))
             {
                 Album?.ApplyTo(track.Album);

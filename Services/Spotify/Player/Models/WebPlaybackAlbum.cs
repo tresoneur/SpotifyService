@@ -9,6 +9,7 @@ namespace Caerostris.Services.Spotify.Player.Models
 {
     public class WebPlaybackAlbum
     {
+        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         [JsonProperty("images")]
         public List<Image> Images { get; set; }
 
@@ -17,6 +18,7 @@ namespace Caerostris.Services.Spotify.Player.Models
 
         [JsonProperty("uri")]
         public string Uri { get; set; }
+        #pragma warning restore CS8618
 
         public SimpleAlbum ApplyTo(SimpleAlbum album)
         {
