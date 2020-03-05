@@ -57,6 +57,7 @@ namespace Caerostris.Services.Spotify
                     | Scope.UserReadEmail
                     | Scope.UserReadPlaybackState
                     | Scope.UserModifyPlaybackState
+                    | Scope.UserLibraryRead
                     | Scope.Streaming
             );
         }
