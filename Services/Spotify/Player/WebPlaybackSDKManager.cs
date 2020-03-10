@@ -1,11 +1,8 @@
-﻿using Microsoft.JSInterop;
-using SpotifyAPI.Web.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Caerostris.Services.Spotify.Player.Models;
+﻿using Caerostris.Services.Spotify.Player.Models;
+using Microsoft.JSInterop;
 using Newtonsoft.Json;
+using System;
+using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify.Player
 {
@@ -20,10 +17,10 @@ namespace Caerostris.Services.Spotify.Player
         private DotNetObjectReference<WebPlaybackSDKManager> selfReference;
 
 
-        private Func<Task<string?>> authTokenCallback = 
+        private Func<Task<string?>> authTokenCallback =
             async () => await Task.FromResult<string?>(null);
 
-        private Func<string, Task> errorCallback = 
+        private Func<string, Task> errorCallback =
             async (_) => { await Task.CompletedTask; };
 
         private Action<WebPlaybackState?> playbackContextCallback =
@@ -46,8 +43,8 @@ namespace Caerostris.Services.Spotify.Player
         /// <param name="">TODO</param>
         /// <returns></returns>
         public async Task Initialize(
-            Func<Task<string?>> authTokenCallback, 
-            Func<string, Task> errorCallback, 
+            Func<Task<string?>> authTokenCallback,
+            Func<string, Task> errorCallback,
             Action<WebPlaybackState?> playbackContextCallback,
             Func<string, Task> onDeviceReady)
         {

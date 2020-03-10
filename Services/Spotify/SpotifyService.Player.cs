@@ -1,10 +1,8 @@
 ﻿using Caerostris.Services.Spotify.Player;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Player.Models;
 using SpotifyAPI.Web.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify
 {

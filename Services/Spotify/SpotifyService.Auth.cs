@@ -1,8 +1,6 @@
 ﻿using Caerostris.Services.Spotify.Auth;
 using SpotifyAPI.Web.Enums;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify
@@ -30,11 +28,11 @@ namespace Caerostris.Services.Spotify
             authManager = injectedAuthManager;
 
             api.TokenType = "Bearer";
-
+            _ = CheckAuth();
             authPollingTimer = new System.Threading.Timer(
                 callback: async _ => { await CheckAuth(); },
                 state: null,
-                dueTime: 0,
+                dueTime: 1000,
                 period: 1000
             );
         }
@@ -74,7 +72,7 @@ namespace Caerostris.Services.Spotify
 
             if (token is null)
                 return false;
-            
+
             api.AccessToken = token;
 
             // Fire event(s)
@@ -98,7 +96,7 @@ namespace Caerostris.Services.Spotify
                 api.AccessToken = token;
 
             bool authGranted = (await AuthGranted());
-            if(authGranted != authGrantedWhenLastChecked)
+            if (authGranted != authGrantedWhenLastChecked)
             {
                 authGrantedWhenLastChecked = authGranted;
                 AuthStateChanged?.Invoke(authGranted);

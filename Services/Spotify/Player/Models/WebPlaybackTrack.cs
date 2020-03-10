@@ -1,16 +1,16 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Converters;
-using SpotifyAPI.Web.Enums;
 
 namespace Caerostris.Services.Spotify.Player.Models
 {
     public class WebPlaybackTrack
     {
-        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         [JsonProperty("album")]
         public WebPlaybackAlbum? Album { get; set; }
 
@@ -35,7 +35,7 @@ namespace Caerostris.Services.Spotify.Player.Models
 
         [JsonProperty("is_playable")]
         public bool? IsPlayable { get; set; }
-        #pragma warning restore CS8618
+#pragma warning restore CS8618
 
         public FullTrack ApplyTo(FullTrack track)
         {
@@ -45,12 +45,12 @@ namespace Caerostris.Services.Spotify.Player.Models
                 Album?.ApplyTo(track.Album);
 
                 track.Artists = Artists
-                    .Select((artist) => 
-                        new SimpleArtist() 
-                        { 
-                            Id = artist.Uri.Split(':').LastOrDefault(), 
-                            Name = artist.Name, 
-                            Uri = artist.Uri 
+                    .Select((artist) =>
+                        new SimpleArtist()
+                        {
+                            Id = artist.Uri.Split(':').LastOrDefault(),
+                            Name = artist.Name,
+                            Uri = artist.Uri
                         })
                     .ToList();
             }

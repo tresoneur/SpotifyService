@@ -1,10 +1,6 @@
 ﻿using Newtonsoft.Json;
-using SpotifyAPI.Web.Models;
 using SpotifyAPI.Web.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using SpotifyAPI.Web.Models;
 
 namespace Caerostris.Services.Spotify.Player.Models
 {

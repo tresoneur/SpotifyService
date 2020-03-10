@@ -2,10 +2,7 @@
 using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
 using SpotifyAPI.Web;
-using SpotifyAPI.Web.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify
@@ -18,12 +15,13 @@ namespace Caerostris.Services.Spotify
         private SpotifyWebAPI api;
         private WebAPIManager dispatcher;
 
-        #pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods.
-        public SpotifyService(ImplicitGrantAuthManager injectedAuthManager, WebPlaybackSDKManager injectedPlayer)
-        #pragma warning restore CS8618
+#pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods.
+        public SpotifyService(ImplicitGrantAuthManager injectedAuthManager, WebAPIManager injectedWebAPIManager, WebPlaybackSDKManager injectedPlayer)
+#pragma warning restore CS8618
         {
             api = new SpotifyWebAPI();
-            dispatcher = new WebAPIManager(api);
+            dispatcher = injectedWebAPIManager;
+            dispatcher.Initialize(api);
 
             InitializeAuth(injectedAuthManager);
             InitializePlayer(injectedPlayer);
@@ -32,6 +30,9 @@ namespace Caerostris.Services.Spotify
 
         public async Task<string> GetUsername() =>
             (await dispatcher.GetPrivateProfile()).GetUsername();
+
+        public async Task<string> GetUserID() =>
+            (await dispatcher.GetPrivateProfile()).Id;
 
         private async Task OnError(string message)
         {

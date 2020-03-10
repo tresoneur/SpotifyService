@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify.Web
 {
@@ -20,7 +19,7 @@ namespace Caerostris.Services.Spotify.Web
 
         public static string GetUsername(this PrivateProfile? profile)
         {
-            if(profile == null)
+            if (profile == null)
                 return Unknown;
             else
                 return string.IsNullOrEmpty(profile.DisplayName)
@@ -36,7 +35,7 @@ namespace Caerostris.Services.Spotify.Web
         public static bool HasValidItem(this PlaybackContext? playback) =>
             !(playback?.Item is null || playback.Item.DurationMs == 0);
 
-        public static bool IsPlayingOrNull(this PlaybackContext? playback) => 
+        public static bool IsPlayingOrNull(this PlaybackContext? playback) =>
             playback?.IsPlaying ?? false;
 
         public static bool GetShuffleState(this PlaybackContext? playback) =>
@@ -55,8 +54,8 @@ namespace Caerostris.Services.Spotify.Web
             else if (playback.Item is null)
                 return Unavailable("track");
             else
-                return link 
-                    ? $"<a href=\"{playback.Item.ExternUrls["spotify"]}\">{playback.Item.Name}</a>" 
+                return link
+                    ? $"<a href=\"{playback.Item.ExternUrls["spotify"]}\">{playback.Item.Name}</a>"
                     : playback.Item.Name;
         }
 
@@ -72,7 +71,7 @@ namespace Caerostris.Services.Spotify.Web
 
         public static string GetArtists(this FullTrack? item, bool links = false)
         {
-            if(item is null || item.Artists is null)
+            if (item is null || item.Artists is null)
             {
                 return string.Empty;
             }
@@ -80,8 +79,8 @@ namespace Caerostris.Services.Spotify.Web
             {
                 const string delimiter = ", ";
                 var builder = new StringBuilder();
-                item.Artists.ForEach(artist => 
-                { 
+                item.Artists.ForEach(artist =>
+                {
                     builder.Append((links && !(artist?.ExternalUrls is null))
                         ? $"<a href=\"{artist.ExternalUrls["spotify"]}\">{artist.Name}</a>{delimiter}"
                         : $"{artist.Name}{delimiter}");
@@ -99,8 +98,8 @@ namespace Caerostris.Services.Spotify.Web
             tracks.Select(t => new FlatSavedTrack() { SavedTrack = t });
 
         public static string HumanReadableAddedAt(this SavedTrack track) =>
-            (track.AddedAt.AddDays(14) > DateTime.UtcNow) 
-                ? track.AddedAt.Humanize() 
+            (track.AddedAt.AddDays(14) > DateTime.UtcNow)
+                ? track.AddedAt.Humanize()
                 : track.AddedAt.ToString("yyyy-MM-dd");
 
         public static string HumanReadableDuration(this FullTrack track)

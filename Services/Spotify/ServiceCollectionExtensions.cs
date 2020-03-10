@@ -1,11 +1,10 @@
 ﻿using Blazor.Extensions.Storage;
 using Caerostris.Services.Spotify.Auth;
 using Caerostris.Services.Spotify.Player;
+using Caerostris.Services.Spotify.Web;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using SpotifyAPI.Web.Models;
+using SpotifyService.IndexedDB;
 
 namespace Caerostris.Services.Spotify
 {
@@ -16,13 +15,36 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         public static IServiceCollection AddSpotify(this IServiceCollection services)
         {
+            // LocalStorage
             services.AddStorage();
+
+            // IndexedDB
+            services.AddIndexedDB(dbStore =>
+            {
+                dbStore.DbName = "SpotifyService";
+                dbStore.Version = 1;
+
+                dbStore.Stores.Add(new StoreSchema
+                {
+                    Name = nameof(SavedTrack),
+                    PrimaryKey = new IndexSpec { Auto = true }
+                    /*
+                    PrimaryKey = new IndexSpec { Name = "name", KeyPath = "track.name", Auto = true , Unique = false},
+                    Indexes = new List<IndexSpec>
+                    {
+                        new IndexSpec{Name="album", KeyPath = "track.album.name", Auto=false, Unique = false }
+                    }
+                    */
+                });
+            });
+
 
             // The dependency injection module will take care of the Dispose() call
             services.AddSingleton<SpotifyService>();
 
             // Injected SpotifyService dependencies
             services.AddSingleton<ImplicitGrantAuthManager>();
+            services.AddSingleton<WebAPIManager>();
             services.AddSingleton<WebPlaybackSDKManager>();
 
             return services;

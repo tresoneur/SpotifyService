@@ -1,14 +1,11 @@
-﻿using Microsoft.AspNetCore.Components;
-using Blazor.Extensions.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
-using System.Web;
-using System.Text;
+using Microsoft.AspNetCore.Components;
 using SpotifyAPI.Web.Enums;
-using Blazor.Extensions.Storage.Interfaces;
+using System;
+using System.Text;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Caerostris.Services.Spotify.Auth
 {
@@ -18,6 +15,8 @@ namespace Caerostris.Services.Spotify.Auth
 
         private ILocalStorage localStorage;
         private NavigationManager navigationManager;
+
+        private ImplicitGrantToken? memoryCachedToken;
 
         public ImplicitGrantAuthManager(ILocalStorage injectedLocalStorage, NavigationManager injectedNavigatorManager)
         {
@@ -53,19 +52,26 @@ namespace Caerostris.Services.Spotify.Auth
         /// <returns>The access token of the cached token, if there is a valid token. Null otherwise</returns>
         public async Task<string?> GetToken()
         {
-            var cachedToken = await localStorage.GetItem<ImplicitGrantToken?>(nameof(ImplicitGrantToken));
+            if (!(memoryCachedToken is null))
+                if (!memoryCachedToken.IsExpired())
+                    return memoryCachedToken.AccessToken;
+                else
+                    memoryCachedToken = null;
 
-            if (cachedToken is null)
+            var localStorageCachedToken = await localStorage.GetItem<ImplicitGrantToken?>(nameof(ImplicitGrantToken));
+
+            if (localStorageCachedToken is null)
                 return null;
 
-            if(cachedToken.IsExpired())
+            if (localStorageCachedToken.IsExpired())
             {
                 await localStorage.RemoveItem(nameof(ImplicitGrantToken));
                 return null;
             }
             else
             {
-                return cachedToken.AccessToken;
+                memoryCachedToken = localStorageCachedToken;
+                return localStorageCachedToken.AccessToken;
             }
         }
 
@@ -84,7 +90,7 @@ namespace Caerostris.Services.Spotify.Auth
 
             await localStorage.RemoveItem(nameof(ImplicitGrantWorkflow));
 
-            
+
             var expiresInSec = int.Parse(GetQueryParam("expires_in"));
             var accessToken = GetQueryParam("access_token");
 
@@ -94,6 +100,8 @@ namespace Caerostris.Services.Spotify.Auth
             var token = new ImplicitGrantToken(expiresInSec, accessToken);
 
             await localStorage.SetItem(nameof(ImplicitGrantToken), token);
+
+            memoryCachedToken = token;
 
             navigationManager.NavigateTo("/", forceLoad: false);
 

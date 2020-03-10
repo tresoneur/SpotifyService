@@ -2,7 +2,6 @@
 using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +21,7 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         private DateTime webAPISuppressionTimestamp = DateTime.UnixEpoch;
         private const int webAPISuppressionLengthMs = 2 * 1000;
-        
+
         /// <summary>
         /// Fires when a new PlaybackContext is received from the Spotify API. A <seealso cref="PlaybackDisplayUpdate"/> event is also fired afterwards.
         /// </summary>
@@ -74,13 +73,19 @@ namespace Caerostris.Services.Spotify
         public async Task Play() =>
             await DoPlaybackOperation(player.Play, dispatcher.ResumePlayback);
 
+        public async Task PlayTrack(string? contextURI, string trackURI) =>
+            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(contextURI, trackURI));
+
+        public async Task PlayTracks(IEnumerable<string> URIs) =>
+            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(URIs));
+
         public async Task Pause() =>
             await DoPlaybackOperation(player.Pause, dispatcher.PausePlayback);
 
         public async Task Next() =>
             await DoPlaybackOperation(player.Next, dispatcher.SkipPlaybackToNext);
 
-        public async Task Previous() => 
+        public async Task Previous() =>
             await DoPlaybackOperation(player.Previous, dispatcher.SkipPlaybackToPrevious);
 
         public async Task Seek(int positionMs) =>
@@ -106,7 +111,7 @@ namespace Caerostris.Services.Spotify
 
         public async Task SetVolume(int volumePercent)
         {
-            if(!(lastKnownPlayback?.Device is null))
+            if (!(lastKnownPlayback?.Device is null))
                 lastKnownPlayback.Device.VolumePercent = volumePercent;
 
             await DoPlaybackOperation(
@@ -140,9 +145,9 @@ namespace Caerostris.Services.Spotify
             if (lastKnownPlayback is null || lastKnownPlayback.Item is null || lastKnownPlaybackTimestamp is null)
                 return 0;
 
-            var extraProgressIfPlaying = DateTime.UtcNow - lastKnownPlaybackTimestamp; // TODO: not precise, 1/2 rtt unaccounted for
+            var extraProgressIfPlaying = DateTime.UtcNow - lastKnownPlaybackTimestamp;
             long totalProgressIfPlaying = Convert.ToInt64(extraProgressIfPlaying.Value.TotalMilliseconds) + lastKnownPlayback.ProgressMs;
-            try 
+            try
             {
                 int progressIfPlayingSane = Convert.ToInt32(totalProgressIfPlaying);
                 var bestGuess = ((lastKnownPlayback.IsPlaying) ? progressIfPlayingSane : lastKnownPlayback.ProgressMs);
@@ -150,7 +155,7 @@ namespace Caerostris.Services.Spotify
 
                 return ((bestGuess > totalDuractionMs) ? totalDuractionMs : bestGuess);
             }
-            catch (OverflowException) 
+            catch (OverflowException)
             {
                 return 0;
             }
@@ -162,7 +167,7 @@ namespace Caerostris.Services.Spotify
                 return;
 
             lastKnownPlayback = playback;
-            lastKnownPlaybackTimestamp = DateTime.UtcNow;
+            lastKnownPlaybackTimestamp = DateTime.UtcNow.AddMilliseconds(-50); // TODO: don't cheat
             PlaybackContextChanged?.Invoke(playback);
             PlaybackDisplayUpdate?.Invoke(GetProgressMs());
         }

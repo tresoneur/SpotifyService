@@ -1,14 +1,11 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify.Player.Models
 {
     public class WebPlaybackTrackWindow
     {
-        #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         [JsonProperty("current_track")]
         public WebPlaybackTrack? CurrentTrack { get; set; }
 
@@ -18,6 +15,6 @@ namespace Caerostris.Services.Spotify.Player.Models
         [JsonProperty("next_tracks")]
 
         public List<WebPlaybackTrack> NextTracks { get; set; }
-        #pragma warning restore CS8618
+#pragma warning restore CS8618
     }
 }
