@@ -14,23 +14,24 @@ namespace Caerostris.Services.Spotify
         private bool isPlaybackLocal = false;
 
 
-        private void InitializePlayer(WebPlaybackSDKManager injectedPlayer)
+        private async Task InitializePlayer(WebPlaybackSDKManager injectedPlayer)
         {
             player = injectedPlayer;
-            _ = player.Initialize(
+
+            await player.Initialize(
                 GetAuthToken,
                 OnError,
-                OnPlaybackContextChanged,
+                OnPlaybackChanged,
                 OnLocalPlayerReady);
 
-            PlaybackContextChanged += OnDevicePotentiallyChanged;
+            PlaybackChanged += OnDevicePotentiallyChanged;
         }
 
-        private void OnPlaybackContextChanged(WebPlaybackState? state)
+        private void OnPlaybackChanged(WebPlaybackState? state)
         {
             if (!(lastKnownPlayback is null) && !(state is null))
             {
-                state.ApplyTo(lastKnownPlayback);
+                // state.ApplyTo(lastKnownPlayback); // TODO: better heuristics or permanent removal
                 FirePlaybackContextChanged(lastKnownPlayback);
             }
         }
@@ -43,7 +44,7 @@ namespace Caerostris.Services.Spotify
             Log("Playback automatically transferred to local device.");
         }
 
-        private void OnDevicePotentiallyChanged(PlaybackContext playback)
+        private async Task OnDevicePotentiallyChanged(PlaybackContext playback)
         {
             if (!(playback?.Device?.Id is null))
             {
@@ -61,6 +62,8 @@ namespace Caerostris.Services.Spotify
                     Log("Playback transferred back to local device.");
                 }
             }
+
+            await Task.CompletedTask; // TODO: two event signatures
         }
     }
 }

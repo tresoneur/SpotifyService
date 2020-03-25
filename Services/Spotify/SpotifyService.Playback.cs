@@ -25,7 +25,7 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Fires when a new PlaybackContext is received from the Spotify API. A <seealso cref="PlaybackDisplayUpdate"/> event is also fired afterwards.
         /// </summary>
-        public event Action<PlaybackContext>? PlaybackContextChanged;
+        public event Func<PlaybackContext, Task>? PlaybackChanged;
         private Timer playbackContextPollingTimer;
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Caerostris.Services.Spotify
         private void InitializePlayback()
         {
             playbackContextPollingTimer = new System.Threading.Timer(
-                callback: async _ => { FirePlaybackContextChanged(await GetPlayback()); },
+                callback: async _ => { if (await AuthGranted()) FirePlaybackContextChanged(await GetPlayback()); },
                 state: null,
                 dueTime: 0,
                 period: 1000
@@ -55,7 +55,7 @@ namespace Caerostris.Services.Spotify
 
         /// <summary>
         /// The best guess we have at the current state of playback.
-        /// Use with care: for regular updates, subscribe to <seealso cref="PlaybackContextChanged"/> instead.
+        /// Use with care: for regular updates, subscribe to <seealso cref="PlaybackChanged"/> instead.
         /// </summary>
         public async Task<PlaybackContext?> GetPlayback()
         {
@@ -130,7 +130,8 @@ namespace Caerostris.Services.Spotify
         private async Task DoLocalPlaybackOperation(Func<Task> action)
         {
             await action();
-            SuppressWebAPI(); /// The Spotify Web Playback SDK will issue a state update event. The PlaybackContextChanged event is fired from our callback function.
+            // SuppressWebAPI(); /// The Spotify Web Playback SDK will issue a state update event. The PlaybackChanged event is fired from our callback function. // TODO: better heuristics or permanent removal
+            FirePlaybackContextChanged(await dispatcher.GetPlayback());
         }
 
         private async Task DoRemotePlaybackOperation(Func<Task> action)
@@ -163,12 +164,14 @@ namespace Caerostris.Services.Spotify
 
         private void FirePlaybackContextChanged(PlaybackContext? playback)
         {
+            FireIfContextChanged(playback);
+
             if (playback is null)
                 return;
 
             lastKnownPlayback = playback;
             lastKnownPlaybackTimestamp = DateTime.UtcNow.AddMilliseconds(-50); // TODO: don't cheat
-            PlaybackContextChanged?.Invoke(playback);
+            PlaybackChanged?.Invoke(playback);
             PlaybackDisplayUpdate?.Invoke(GetProgressMs());
         }
 

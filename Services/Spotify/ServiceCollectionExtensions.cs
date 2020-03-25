@@ -5,6 +5,8 @@ using Caerostris.Services.Spotify.Web;
 using Microsoft.Extensions.DependencyInjection;
 using SpotifyAPI.Web.Models;
 using SpotifyService.IndexedDB;
+using System;
+using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify
 {
@@ -48,6 +50,12 @@ namespace Caerostris.Services.Spotify
             services.AddSingleton<WebPlaybackSDKManager>();
 
             return services;
+        }
+
+        public async static Task InitializeSpotify(this IServiceProvider host)
+        {
+            var spotifyService = host.GetRequiredService<SpotifyService>();
+            await spotifyService.Initialize();
         }
     }
 }

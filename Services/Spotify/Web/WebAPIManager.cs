@@ -1,4 +1,5 @@
-﻿using SpotifyAPI.Web;
+﻿using Caerostris.Services.Spotify.Web.ViewModels;
+using SpotifyAPI.Web;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using SpotifyService.IndexedDB;
@@ -110,6 +111,55 @@ namespace Caerostris.Services.Spotify.Web
             return real;
         }
 
+        public async Task<ArtistProfile> GetArtist(string URI)
+        {
+            var ID = URI.Split(':').Last();
+            var market = await GetMarket();
+
+            var fullArtist = api.GetArtistAsync(ID);
+            var relatedArtists = api.GetRelatedArtistsAsync(ID);
+            var artistAlbums = DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(ID, offset: o, limit: p, market: market));
+            var artistTopTracks = api.GetArtistsTopTracksAsync(ID, country: market);
+
+            await Task.WhenAll(new Task[] { fullArtist, relatedArtists, artistAlbums, artistTopTracks });
+
+            return new ArtistProfile
+            {
+                Artist = fullArtist.Result,
+                TopTracks = artistTopTracks.Result.Tracks,
+                Albums = artistAlbums.Result,
+                RelatedArtists = relatedArtists.Result.Artists
+            };
+        }
+
+        public async Task<CompleteAlbum> GetAlbum(string URI)
+        {
+            var ID = URI.Split(':').Last();
+            var market = await GetMarket();
+
+            var fullAlbum = api.GetAlbumAsync(ID, market: market);
+            var albumTracks = DownloadPagedResources(
+                (o, p) => api.GetAlbumTracksAsync(id: ID, offset: o, limit: p, market: market));
+
+            await Task.WhenAll(new Task[]{fullAlbum, albumTracks});
+
+            return new CompleteAlbum { Album = fullAlbum.Result, Tracks = albumTracks.Result };
+        }
+
+        public async Task<CompletePlaylist> GetPlaylist(string URI)
+        {
+            var ID = URI.Split(':').Last();
+            var market = await GetMarket();
+
+            var fullPlaylist = api.GetPlaylistAsync(ID, market: market);
+            var playlistTracks = DownloadPagedResources(
+                (o, p) => api.GetPlaylistTracksAsync(playlistId: ID, offset: o, limit: p, market: market));
+
+            await Task.WhenAll(new Task[]{fullPlaylist, playlistTracks});
+
+            return new CompletePlaylist { Playlist = fullPlaylist.Result, Tracks = playlistTracks.Result };
+        }
+
         #region Comfort
 
         private async Task<string> GetMarket()
@@ -119,28 +169,11 @@ namespace Caerostris.Services.Spotify.Web
 
         private async Task<IEnumerable<SavedTrack>> DownloadSavedTracks(Action<int, int> progressCallback)
         {
-            var result = new List<SavedTrack>();
-            const int rateLimitDelayMs = 200, pageSize = 50;
-            int offset = 0;
-            while (true)
-            {
-                var page = await api.GetSavedTracksAsync(pageSize, offset, await GetMarket());
-                if (!(page.Items is null) && page.Items.Count > 0)
-                {
-                    result.AddRange(page.Items);
-                    progressCallback(offset + page.Items.Count, page.Total);
-                    await SaveSavedTracks(page.Items);
-                }
-
-                if (!page.HasNextPage())
-                    break;
-
-                offset += pageSize;
-
-                await Task.Delay(rateLimitDelayMs);
-            }
-
-            return result;
+            var market = await GetMarket();
+            return await DownloadPagedResources(
+                (o, p) => api.GetSavedTracksAsync(offset: o, limit: p, market: market), 
+                progressCallback, 
+                SaveSavedTracks);
         }
 
         private async Task SaveSavedTracks(IEnumerable<SavedTrack> tracks)
@@ -155,6 +188,8 @@ namespace Caerostris.Services.Spotify.Web
 
         private async Task<IEnumerable<SavedTrack>> GetCachedSavedTracks(Action<int, int> progressCallback)
         {
+            // TODO: in-memory caching
+
             /// There is no way to get e.g. a hash of all track IDs from Spotify, so we have to improvise a way to tell if the Library has been updated since we last cached it. 
             ///  This method is obviously quite crude, but should work for /most/ intents and purposes (people don't frequently remove tracks from their libraries).
             var (realCount, cachedCount) = await GetRealAndChachedSavedTrackCount();
@@ -193,6 +228,41 @@ namespace Caerostris.Services.Spotify.Web
             var real = (await (api.GetSavedTracksAsync(10, 0, await GetMarket()))).Total;
             var cached = await indexedDB.GetCount(nameof(SavedTrack));
             return (real, cached);
+        }
+
+        private async Task<IEnumerable<T>> DownloadPagedResources<T>(
+            Func<int, int, Task<Paging<T>>> aquire, 
+            Action<int, int>? notify = null, 
+            Func<IEnumerable<T>, Task>? submit = null)
+        {
+            const int rateLimitDelayMs = 200, pageSize = 50;
+
+            var result = new List<T>();
+
+            int offset = 0;
+            while(true)
+            {
+                var page = await aquire(offset, pageSize);
+                
+                if (!(page.Items is null) && page.Items.Count > 0)
+                {
+                    result.AddRange(page.Items);
+
+                    notify?.Invoke(offset + page.Items.Count, page.Total);
+
+                    if(!(submit is null))
+                        await submit.Invoke(page.Items);
+                }
+
+                if (!page.HasNextPage())
+                    break;
+
+                offset += pageSize;
+
+                await Task.Delay(rateLimitDelayMs);
+            }
+
+            return result;
         }
 
         #endregion

@@ -23,12 +23,13 @@ namespace Caerostris.Services.Spotify
         private bool authGrantedWhenLastChecked = false;
 
 
-        private void InitializeAuth(ImplicitGrantAuthManager injectedAuthManager)
+        private async Task InitializeAuth(ImplicitGrantAuthManager injectedAuthManager)
         {
             authManager = injectedAuthManager;
 
             api.TokenType = "Bearer";
-            _ = CheckAuth();
+            await CheckAuth();
+
             authPollingTimer = new System.Threading.Timer(
                 callback: async _ => { await CheckAuth(); },
                 state: null,

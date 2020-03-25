@@ -15,7 +15,7 @@ class WebPlaybackSDKWrapper {
         {
             GetAuthToken: 'GetAuthToken',
             OnError: 'OnError',
-            OnPlayerStateChanged: 'OnPlaybackContextChanged',
+            OnPlayerStateChanged: 'OnPlaybackChanged',
             OnReady: 'OnDeviceReady'
         }
 

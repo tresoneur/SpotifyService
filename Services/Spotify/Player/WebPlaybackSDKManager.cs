@@ -65,7 +65,7 @@ namespace Caerostris.Services.Spotify.Player
             await errorCallback(message ?? string.Empty);
 
         [JSInvokable]
-        public void OnPlaybackContextChanged(string? state)
+        public void OnPlaybackChanged(string? state)
         {
             if (!string.IsNullOrEmpty(state))
                 playbackContextCallback(JsonConvert.DeserializeObject<WebPlaybackState?>(state));

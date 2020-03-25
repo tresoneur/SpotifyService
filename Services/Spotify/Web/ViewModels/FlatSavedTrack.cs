@@ -15,7 +15,7 @@ namespace Caerostris.Services.Spotify.Web.ViewModels
 
         public string Album => SavedTrack.Track.Album.Name;
 
-        public string Artists => SavedTrack.Track.GetArtists();
+        public string Artists => SavedTrack.Track.Artists.GetArtists();
 
         public int DurationMS => SavedTrack.Track.DurationMs;
 
