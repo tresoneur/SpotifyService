@@ -24,7 +24,7 @@ namespace Caerostris.Services.Spotify.Auth
             navigationManager = injectedNavigatorManager;
         }
 
-        public async Task StartProcess(string clientID, string redirectURI, Scope scope)
+        public async Task StartProcess(string clientId, string redirectUri, Scope scope)
         {
             // Generate a state string and save it to LocalStorage to protect the client from CSRF.
             var state = new ImplicitGrantWorkflow()
@@ -36,10 +36,10 @@ namespace Caerostris.Services.Spotify.Auth
             var builder = new StringBuilder();
             builder.Append(APIBase);
             builder.Append("?response_type=token");
-            builder.Append($"&client_id={clientID}");
+            builder.Append($"&client_id={clientId}");
             if (scope != Scope.None)
                 builder.Append($"&scope={SpotifyAPI.Web.Util.GetStringAttribute(scope, separator: " ")}");
-            builder.Append($"&redirect_uri={redirectURI}");
+            builder.Append($"&redirect_uri={redirectUri}");
             builder.Append($"&state={state.State}");
             builder.Append("&show_dialog=true"); // Spotify won't show the dialog by default even if the request contains new scopes
 

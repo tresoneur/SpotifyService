@@ -24,15 +24,21 @@ namespace Caerostris.Services.Spotify
             await dispatcher.GetSavedTracks((c, t) => LibraryLoadingProgress?.Invoke(c, t));
 
         /// <summary>
-        /// Returns the user's saved tracks in a format that can be used directly in a datagrid.
-        /// </summary>
-        public async Task<IEnumerable<FlatSavedTrack>> GetFlatSavedTracks() =>
-            (await GetSavedTracks()).AsFlatSavedTracks();
-
-        /// <summary>
         /// Returns the number of the user's saved tracks. This number is always fetched directly from Spotify and may have changed since you requested the users saved tracks through <see cref="GetSavedTracks"/>.
         /// </summary>
         public async Task<int> GetSavedTrackCount() =>
             await dispatcher.GetSavedTrackCount();
+
+        public async Task<bool> IsTrackSaved(string Id) =>
+            await dispatcher.GetTrackSavedStatus(Id);
+
+        public async Task ToogleTrackSaved(string Id)
+        {
+            if (await IsTrackSaved(Id))
+                await dispatcher.RemoveSavedTrack(Id);
+            else
+                await dispatcher.SaveTrack(Id);
+        }
+
     }
 }

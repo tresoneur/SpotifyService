@@ -10,7 +10,7 @@ namespace Caerostris.Services.Spotify
     /// </remarks>
     public sealed partial class SpotifyService
     {
-        private const string clientID = "87b0c14e92bc4958b1b6fe15259d2577";
+        private const string clientId = "87b0c14e92bc4958b1b6fe15259d2577";
 
         private ImplicitGrantAuthManager authManager;
 
@@ -44,19 +44,23 @@ namespace Caerostris.Services.Spotify
         /// Will reload the page (!)
         /// </summary>
         /// <remarks>
-        /// The callback URI has to be added to the whitelist on the Spotify Developer Dashboard.
+        /// The callback Uri has to be added to the whitelist on the Spotify Developer Dashboard.
         /// Any permissions needed will have to be passed to <see cref="AuthManager.StartProcess(string, string, Scope)"/>.
         /// </remarks>
-        public async Task StartAuthWithImplicitGrant(string callbackURI)
+        public async Task StartAuthWithImplicitGrant(string callbackUri)
         {
             await authManager.StartProcess(
-                clientID,
-                callbackURI,
+                clientId,
+                callbackUri,
                 Scope.UserReadPrivate
                     | Scope.UserReadEmail
                     | Scope.UserReadPlaybackState
                     | Scope.UserModifyPlaybackState
                     | Scope.UserLibraryRead
+                    | Scope.UserReadCurrentlyPlaying
+                    | Scope.PlaylistReadPrivate
+                    | Scope.PlaylistReadCollaborative
+                    | Scope.UserLibraryModify
                     | Scope.Streaming
             );
         }

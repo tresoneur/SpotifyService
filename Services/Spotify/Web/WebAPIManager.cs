@@ -1,8 +1,10 @@
 ﻿using Caerostris.Services.Spotify.Web.ViewModels;
+using Cearostris.Services.Spotify.Web.Library;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using SpotifyService.IndexedDB;
+using SpotifyService.Services.Spotify.Web.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,22 +18,13 @@ namespace Caerostris.Services.Spotify.Web
     /// </remarks>
     public class WebAPIManager
     {
-        private SpotifyWebAPI api;
-        private IndexedDBManager indexedDB;
+        private readonly SpotifyWebAPI api;
+        private readonly SavedTrackManager savedTracks;
 
-#pragma warning disable CS8618 // Non-initialized use of this class is not considered a valid use-case.
-        public WebAPIManager(IndexedDBManager injectedIndexedDBManager)
-#pragma warning restore CS8618
+        public WebAPIManager(SpotifyWebAPI spotifyWebApi, SavedTrackManager savedTrackManager)
         {
-            indexedDB = injectedIndexedDBManager;
-        }
-
-        /// <summary>
-        /// Call this method before attempting to interact with this class in any way.
-        /// </summary>
-        public void Initialize(SpotifyWebAPI spotifyWebAPI)
-        {
-            api = spotifyWebAPI;
+            api = spotifyWebApi;
+            savedTracks = savedTrackManager;
         }
 
         /// <summary>
@@ -54,18 +47,18 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<ErrorResponse?> ResumePlayback() =>
             await api.ResumePlaybackAsync(offset: "");
 
-        public async Task<ErrorResponse?> SetPlayback(string? contextURI, string? trackURI)
+        public async Task<ErrorResponse?> SetPlayback(string? contextUri, string? trackUri)
         {
-            if (contextURI is null && trackURI is null)
+            if (contextUri is null && trackUri is null)
                 return new ErrorResponse();
-            else if (contextURI is null && !(trackURI is null))
-                return await api.ResumePlaybackAsync(deviceId: "", contextUri: "", (new string[] { trackURI }).ToList(), offset: "");
+            else if (contextUri is null && !(trackUri is null))
+                return await api.ResumePlaybackAsync(deviceId: "", contextUri: "", (new string[] { trackUri }).ToList(), offset: "");
             else
-                return await api.ResumePlaybackAsync(deviceId: "", contextUri: contextURI, null, offset: trackURI);
+                return await api.ResumePlaybackAsync(deviceId: "", contextUri: contextUri, null, offset: trackUri ?? "");
         }
 
-        public async Task<ErrorResponse?> SetPlayback(IEnumerable<string> URIs) =>
-            await api.ResumePlaybackAsync(deviceId: "", contextUri: "", URIs.ToList(), offset: "");
+        public async Task<ErrorResponse?> SetPlayback(IEnumerable<string> Uris) =>
+            await api.ResumePlaybackAsync(deviceId: "", contextUri: "", Uris.ToList(), offset: "");
 
         public async Task<ErrorResponse?> PausePlayback() =>
             await api.PausePlaybackAsync();
@@ -82,8 +75,8 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<AvailabeDevices> GetDevices() =>
             await api.GetDevicesAsync();
 
-        public async Task<ErrorResponse?> TransferPlayback(string deviceID, bool play = false) =>
-            await api.TransferPlaybackAsync(deviceID, play);
+        public async Task<ErrorResponse?> TransferPlayback(string deviceId, bool play = false) =>
+            await api.TransferPlaybackAsync(deviceId, play);
 
         public async Task<ErrorResponse?> SetShuffle(bool shuffle) =>
             await api.SetShuffleAsync(shuffle);
@@ -94,32 +87,17 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<ErrorResponse?> SetVolume(int volumePercent) =>
             await api.SetVolumeAsync(volumePercent);
 
-        public async Task<IEnumerable<SavedTrack>> GetSavedTracks(Action<int, int> progressCallback)
+        public async Task<IEnumerable<SavedTrack>> GetSavedTracks(Action<int, int> progressCallback) =>
+            await savedTracks.GetSavedTracks(progressCallback, await GetMarket());
+        
+        public async Task<ArtistProfile> GetArtist(string Id)
         {
-            // TODO: don't start this again if its running already
-
-            var cachedTracks = await GetCachedSavedTracks(progressCallback);
-            if (!(cachedTracks is null) && cachedTracks.Count() > 0)
-                return cachedTracks;
-
-            return await DownloadSavedTracks(progressCallback);
-        }
-
-        public async Task<int> GetSavedTrackCount()
-        {
-            var (real, _) = await GetRealAndChachedSavedTrackCount();
-            return real;
-        }
-
-        public async Task<ArtistProfile> GetArtist(string URI)
-        {
-            var ID = URI.Split(':').Last();
             var market = await GetMarket();
 
-            var fullArtist = api.GetArtistAsync(ID);
-            var relatedArtists = api.GetRelatedArtistsAsync(ID);
-            var artistAlbums = DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(ID, offset: o, limit: p, market: market));
-            var artistTopTracks = api.GetArtistsTopTracksAsync(ID, country: market);
+            var fullArtist = api.GetArtistAsync(Id);
+            var relatedArtists = api.GetRelatedArtistsAsync(Id);
+            var artistAlbums = Utility.DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(Id, offset: o, limit: p, market: market));
+            var artistTopTracks = api.GetArtistsTopTracksAsync(Id, country: market);
 
             await Task.WhenAll(new Task[] { fullArtist, relatedArtists, artistAlbums, artistTopTracks });
 
@@ -132,137 +110,56 @@ namespace Caerostris.Services.Spotify.Web
             };
         }
 
-        public async Task<CompleteAlbum> GetAlbum(string URI)
+        public async Task<CompleteAlbum> GetAlbum(string Id)
         {
-            var ID = URI.Split(':').Last();
             var market = await GetMarket();
 
-            var fullAlbum = api.GetAlbumAsync(ID, market: market);
-            var albumTracks = DownloadPagedResources(
-                (o, p) => api.GetAlbumTracksAsync(id: ID, offset: o, limit: p, market: market));
+            var fullAlbum = api.GetAlbumAsync(Id, market: market);
+            var albumTracks = Utility.DownloadPagedResources(
+                (o, p) => api.GetAlbumTracksAsync(id: Id, offset: o, limit: p, market: market));
 
             await Task.WhenAll(new Task[]{fullAlbum, albumTracks});
 
             return new CompleteAlbum { Album = fullAlbum.Result, Tracks = albumTracks.Result };
         }
 
-        public async Task<CompletePlaylist> GetPlaylist(string URI)
+        public async Task<CompletePlaylist> GetPlaylist(string Id)
         {
-            var ID = URI.Split(':').Last();
             var market = await GetMarket();
 
-            var fullPlaylist = api.GetPlaylistAsync(ID, market: market);
-            var playlistTracks = DownloadPagedResources(
-                (o, p) => api.GetPlaylistTracksAsync(playlistId: ID, offset: o, limit: p, market: market));
+            var fullPlaylist = api.GetPlaylistAsync(Id, market: market);
+            var playlistTracks = Utility.DownloadPagedResources(
+                (o, p) => api.GetPlaylistTracksAsync(playlistId: Id, offset: o, limit: p, market: market));
 
             await Task.WhenAll(new Task[]{fullPlaylist, playlistTracks});
 
             return new CompletePlaylist { Playlist = fullPlaylist.Result, Tracks = playlistTracks.Result };
         }
 
+        public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists(string Id) =>
+            await Utility.DownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: Id, offset: o, limit: p));
+
+        // TODO: listás verzió
+        public async Task<bool> GetTrackSavedStatus(string Id) =>
+            (await api.CheckSavedTracksAsync(new string[] { Id }.ToList())).List.FirstOrDefault();
+
+        public async Task<ErrorResponse> SaveTrack(string Id) =>
+            await api.SaveTrackAsync(Id);
+
+        public async Task<int> GetSavedTrackCount(string market = "") =>
+            await savedTracks.GetSavedTrackCount(market);
+
+        public async Task<ErrorResponse> RemoveSavedTrack(string Id) =>
+            await api.RemoveSavedTracksAsync(new string[] { Id }.ToList());
+
+        public async Task<SearchItem> Search(string query) =>
+            await api.SearchItemsEscapedAsync(query, SearchType.All, 6, 0, await GetMarket());
+
         #region Comfort
 
         private async Task<string> GetMarket()
         {
             return (await GetPrivateProfile()).Country;
-        }
-
-        private async Task<IEnumerable<SavedTrack>> DownloadSavedTracks(Action<int, int> progressCallback)
-        {
-            var market = await GetMarket();
-            return await DownloadPagedResources(
-                (o, p) => api.GetSavedTracksAsync(offset: o, limit: p, market: market), 
-                progressCallback, 
-                SaveSavedTracks);
-        }
-
-        private async Task SaveSavedTracks(IEnumerable<SavedTrack> tracks)
-        {
-            foreach (var track in tracks)
-                await indexedDB.AddRecord(new StoreRecord<SavedTrack>
-                {
-                    Storename = nameof(SavedTrack),
-                    Data = track
-                });
-        }
-
-        private async Task<IEnumerable<SavedTrack>> GetCachedSavedTracks(Action<int, int> progressCallback)
-        {
-            // TODO: in-memory caching
-
-            /// There is no way to get e.g. a hash of all track IDs from Spotify, so we have to improvise a way to tell if the Library has been updated since we last cached it. 
-            ///  This method is obviously quite crude, but should work for /most/ intents and purposes (people don't frequently remove tracks from their libraries).
-            var (realCount, cachedCount) = await GetRealAndChachedSavedTrackCount();
-            if(realCount != cachedCount)
-            {
-                await indexedDB.ClearStore(nameof(SavedTrack));
-                return new List<SavedTrack>();
-            }
-
-            var records = new List<SavedTrack>();
-            const int count = 100;
-            int offset = 0;
-
-            while (offset < cachedCount)
-            {
-                var paginatedRecords =
-                    await indexedDB.GetPaginatedRecords<SavedTrack>(
-                        new StoreIndexQuery<object> { Storename = nameof(SavedTrack), IndexName = null /* = primary key */ },
-                        offset,
-                        count);
-
-                records.AddRange(paginatedRecords);
-                progressCallback(records.Count, cachedCount);
-
-                if (paginatedRecords.Count() < count)
-                    break;
-
-                offset += count;
-            }
-
-            return records;
-        }
-
-        private async Task<(int, int)> GetRealAndChachedSavedTrackCount()
-        {
-            var real = (await (api.GetSavedTracksAsync(10, 0, await GetMarket()))).Total;
-            var cached = await indexedDB.GetCount(nameof(SavedTrack));
-            return (real, cached);
-        }
-
-        private async Task<IEnumerable<T>> DownloadPagedResources<T>(
-            Func<int, int, Task<Paging<T>>> aquire, 
-            Action<int, int>? notify = null, 
-            Func<IEnumerable<T>, Task>? submit = null)
-        {
-            const int rateLimitDelayMs = 200, pageSize = 50;
-
-            var result = new List<T>();
-
-            int offset = 0;
-            while(true)
-            {
-                var page = await aquire(offset, pageSize);
-                
-                if (!(page.Items is null) && page.Items.Count > 0)
-                {
-                    result.AddRange(page.Items);
-
-                    notify?.Invoke(offset + page.Items.Count, page.Total);
-
-                    if(!(submit is null))
-                        await submit.Invoke(page.Items);
-                }
-
-                if (!page.HasNextPage())
-                    break;
-
-                offset += pageSize;
-
-                await Task.Delay(rateLimitDelayMs);
-            }
-
-            return result;
         }
 
         #endregion

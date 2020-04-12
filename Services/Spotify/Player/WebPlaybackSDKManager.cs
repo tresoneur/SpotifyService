@@ -72,10 +72,10 @@ namespace Caerostris.Services.Spotify.Player
         }
 
         [JSInvokable]
-        public async Task OnDeviceReady(string? deviceID)
+        public async Task OnDeviceReady(string? deviceId)
         {
-            if (!string.IsNullOrEmpty(deviceID))
-                await onDeviceReady(deviceID);
+            if (!string.IsNullOrEmpty(deviceId))
+                await onDeviceReady(deviceId);
         }
 
         public async Task Play() =>

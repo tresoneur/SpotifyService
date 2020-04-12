@@ -5,7 +5,7 @@ class WebPlaybackSDKWrapper {
         this.Player = null;
         this.GetOAuthToken = null;
         this.OnError = null;
-        this.DeviceID = null;
+        this.DeviceId = null;
         this.Name = "Caerostris";
         this.LoggingPrefix = "SpotifyService Local Playback Device: ";
     }
@@ -64,7 +64,7 @@ class WebPlaybackSDKWrapper {
         });
 
         this.Player.addListener('ready', ({ device_id }) => {
-            this.DeviceID = device_id;
+            this.DeviceId = device_id;
             console.log(this.LoggingPrefix + 'Ready with the following ID: ' + device_id);
             dotNetWebPlaybackSDKManager
                 .invokeMethodAsync(dotNetMethods.OnReady, device_id);

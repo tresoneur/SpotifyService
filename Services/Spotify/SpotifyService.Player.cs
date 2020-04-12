@@ -10,7 +10,7 @@ namespace Caerostris.Services.Spotify
     {
         private WebPlaybackSDKManager player;
 
-        private string localDeviceID = "";
+        private string localDeviceId = "";
         private bool isPlaybackLocal = false;
 
 
@@ -36,10 +36,10 @@ namespace Caerostris.Services.Spotify
             }
         }
 
-        private async Task OnLocalPlayerReady(string deviceID)
+        private async Task OnLocalPlayerReady(string deviceId)
         {
-            localDeviceID = deviceID;
-            await TransferPlayback(deviceID);
+            localDeviceId = deviceId;
+            await TransferPlayback(deviceId);
             isPlaybackLocal = true;
             Log("Playback automatically transferred to local device.");
         }
@@ -49,7 +49,7 @@ namespace Caerostris.Services.Spotify
             if (!(playback?.Device?.Id is null))
             {
                 bool playbackContextIndicatesLocalPlayback =
-                    playback.Device.Id.Equals(localDeviceID, StringComparison.InvariantCulture);
+                    playback.Device.Id.Equals(localDeviceId, StringComparison.InvariantCulture);
 
                 if (isPlaybackLocal && !playbackContextIndicatesLocalPlayback)
                 {

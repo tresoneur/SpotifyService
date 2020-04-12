@@ -18,13 +18,12 @@ namespace Caerostris.Services.Spotify
         private (ImplicitGrantAuthManager, WebPlaybackSDKManager) injected;
 
 #pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods.
-        public SpotifyService(ImplicitGrantAuthManager injectedAuthManager, WebAPIManager injectedWebAPIManager, WebPlaybackSDKManager injectedPlayer)
+        public SpotifyService(SpotifyWebAPI spotifyWebApi, ImplicitGrantAuthManager injectedAuthManager, WebAPIManager injectedWebAPIManager, WebPlaybackSDKManager injectedPlayer)
 #pragma warning restore CS8618
         {
-            api = new SpotifyWebAPI();
+            api = spotifyWebApi;
 
             dispatcher = injectedWebAPIManager;
-            dispatcher.Initialize(api);
 
             injected = (injectedAuthManager, injectedPlayer);
         }
@@ -37,12 +36,6 @@ namespace Caerostris.Services.Spotify
             await InitializePlayer(injectedPlayer);
             InitializePlayback();
         }
-
-        public async Task<string> GetUsername() =>
-            (await dispatcher.GetPrivateProfile()).GetUsername();
-
-        public async Task<string> GetUserID() =>
-            (await dispatcher.GetPrivateProfile()).Id;
 
         private async Task OnError(string message)
         {

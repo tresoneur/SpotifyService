@@ -2,7 +2,9 @@
 using Caerostris.Services.Spotify.Auth;
 using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
+using Cearostris.Services.Spotify.Web.Library;
 using Microsoft.Extensions.DependencyInjection;
+using SpotifyAPI.Web;
 using SpotifyAPI.Web.Models;
 using SpotifyService.IndexedDB;
 using System;
@@ -40,14 +42,19 @@ namespace Caerostris.Services.Spotify
                 });
             });
 
+            /// <remarks>
+            /// "Blazor WebAssembly apps don't currently have a concept of DI scopes. Scoped-registered services behave like Singleton services." <see ref="https://docs.microsoft.com/en-us/aspnet/core/blazor/dependency-injection?view=aspnetcore-3.1"/>
+            /// </remarks>
 
             // The dependency injection module will take care of the Dispose() call
-            services.AddSingleton<SpotifyService>();
+            services.AddScoped<SpotifyService>();
 
             // Injected SpotifyService dependencies
-            services.AddSingleton<ImplicitGrantAuthManager>();
-            services.AddSingleton<WebAPIManager>();
-            services.AddSingleton<WebPlaybackSDKManager>();
+            services.AddScoped<SpotifyWebAPI>();
+            services.AddScoped<SavedTrackManager>();
+            services.AddScoped<ImplicitGrantAuthManager>();
+            services.AddScoped<WebAPIManager>();
+            services.AddScoped<WebPlaybackSDKManager>();
 
             return services;
         }

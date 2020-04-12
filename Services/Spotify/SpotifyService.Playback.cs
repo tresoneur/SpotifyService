@@ -67,17 +67,17 @@ namespace Caerostris.Services.Spotify
         public async Task<AvailabeDevices> GetDevices() =>
             await dispatcher.GetDevices();
 
-        public async Task TransferPlayback(string deviceID) =>
-            await dispatcher.TransferPlayback(deviceID, play: lastKnownPlayback?.IsPlaying ?? false);
+        public async Task TransferPlayback(string deviceId) =>
+            await dispatcher.TransferPlayback(deviceId, play: lastKnownPlayback?.IsPlaying ?? false);
 
         public async Task Play() =>
             await DoPlaybackOperation(player.Play, dispatcher.ResumePlayback);
 
-        public async Task PlayTrack(string? contextURI, string trackURI) =>
-            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(contextURI, trackURI));
+        public async Task PlayTrack(string? contextUri, string? trackUri) =>
+            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(contextUri, trackUri));
 
-        public async Task PlayTracks(IEnumerable<string> URIs) =>
-            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(URIs));
+        public async Task PlayTracks(IEnumerable<string> Uris) =>
+            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(Uris));
 
         public async Task Pause() =>
             await DoPlaybackOperation(player.Pause, dispatcher.PausePlayback);
