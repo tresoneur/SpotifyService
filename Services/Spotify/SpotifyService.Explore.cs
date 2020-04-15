@@ -12,6 +12,11 @@ namespace Caerostris.Services.Spotify
         public string ExploreAlbumUrl { get; set; } = "/album/";
         public string ExplorePlaylistUrl { get; set; } = "/playlist/";
 
+        /// <summary>
+        /// Provides persistence for the search query.
+        /// </summary>
+        public string SearchQuery { get; set; }
+
         public async Task<SearchResults> Search(string query)
         {
             var result = await dispatcher.Search(query);

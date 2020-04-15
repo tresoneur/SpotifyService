@@ -11,7 +11,7 @@ namespace Caerostris.Services.Spotify
     {
         /// <summary>
         /// Subscribe to this event to get updates for the progress concerning the downloading or loading of the user's saved tracks.
-        /// Tracks are typically downloaded in batches of 50, loaded from cache in batches of 100, and frequently number in the thousands.
+        /// Tracks are typically downloaded in batches of 50, loaded from cache in batches of 10, and frequently number in the thousands.
         /// </summary>
         public event Action<int, int>? LibraryLoadingProgress;
 
@@ -23,12 +23,6 @@ namespace Caerostris.Services.Spotify
         public async Task<IEnumerable<SavedTrack>> GetSavedTracks() =>
             await dispatcher.GetSavedTracks((c, t) => LibraryLoadingProgress?.Invoke(c, t));
 
-        /// <summary>
-        /// Returns the number of the user's saved tracks. This number is always fetched directly from Spotify and may have changed since you requested the users saved tracks through <see cref="GetSavedTracks"/>.
-        /// </summary>
-        public async Task<int> GetSavedTrackCount() =>
-            await dispatcher.GetSavedTrackCount();
-
         public async Task<bool> IsTrackSaved(string Id) =>
             await dispatcher.GetTrackSavedStatus(Id);
 
@@ -39,6 +33,12 @@ namespace Caerostris.Services.Spotify
             else
                 await dispatcher.SaveTrack(Id);
         }
+
+        /// <summary>
+        /// Returns the list of playlists that the user either owns or follows.
+        /// </summary>
+        public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists() =>
+            await dispatcher.GetUserPlaylists(await GetUserId());
 
     }
 }

@@ -85,6 +85,16 @@ namespace Caerostris.Services.Spotify.Web
         public static string HumanReadableDuration(this SimpleTrack track) =>
             HumanReadableDuration(track.DurationMs);
 
+        public static string OriginalUri(this FullTrack track)
+        {
+            if (track.LinkedFrom is null || string.IsNullOrEmpty(track.LinkedFrom.Uri))
+                return track.Uri;
+            else
+                return track.LinkedFrom.Uri;
+        }
+
+        /// public static string OriginalUri(this SimpleTrack track) isn't possible at this time without a network request
+
         #endregion
 
 

@@ -39,8 +39,10 @@ namespace Caerostris.Services.Spotify.Player
         /// Call this method before attempting to interact with this class in any way.
         /// This method may be called several times. This resets the inner state of the instance and all JS entities associated with it.
         /// </summary>
-        /// <param name="authTokenCallback">Function to call to acquire a valid OAuth token for streaming</param>
-        /// <param name="">TODO</param>
+        /// <param name="authTokenCallback">Callback for when a valid OAuth token needs to be acquired for streaming</param>
+        /// <param name="errorCallback">Called when the Spotify Web Playback SDK reports an error</param>
+        /// <param name="playbackContextCallback">Called when the playback state changes while the local playback device is active</param>
+        /// <param name="onDeviceReady">Reports the ID of the local playback device provided by the Spotify Web Playback SDK</param>
         /// <returns></returns>
         public async Task Initialize(
             Func<Task<string?>> authTokenCallback,

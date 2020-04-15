@@ -16,13 +16,6 @@ namespace Caerostris.Services.Spotify
         private DateTime? lastKnownPlaybackTimestamp;
 
         /// <summary>
-        /// Sometimes the information the Web API supplies lags behind what we already know about the playback, e.g. the user already paused it locally.
-        /// In cases like the above, PlaybackContext updates from the WebAPI are suppressed for a short time.
-        /// </summary>
-        private DateTime webAPISuppressionTimestamp = DateTime.UnixEpoch;
-        private const int webAPISuppressionLengthMs = 2 * 1000;
-
-        /// <summary>
         /// Fires when a new PlaybackContext is received from the Spotify API. A <seealso cref="PlaybackDisplayUpdate"/> event is also fired afterwards.
         /// </summary>
         public event Func<PlaybackContext, Task>? PlaybackChanged;
@@ -54,15 +47,11 @@ namespace Caerostris.Services.Spotify
         }
 
         /// <summary>
-        /// The best guess we have at the current state of playback.
+        /// The current state of playback, as reported by the Spotify Web API.
         /// Use with care: for regular updates, subscribe to <seealso cref="PlaybackChanged"/> instead.
         /// </summary>
-        public async Task<PlaybackContext?> GetPlayback()
-        {
-            return (webAPISuppressionTimestamp.AddMilliseconds(webAPISuppressionLengthMs) < DateTime.UtcNow)
-                ? await dispatcher.GetPlayback() /// Replaces the authoritative PlaybackContext in its entirety.
-                : lastKnownPlayback; /// Patches are applied to the last known PlaybackContext by local Web Playback SDK events.
-        }
+        public async Task<PlaybackContext?> GetPlayback() =>
+            await dispatcher.GetPlayback();
 
         public async Task<AvailabeDevices> GetDevices() =>
             await dispatcher.GetDevices();
@@ -127,12 +116,9 @@ namespace Caerostris.Services.Spotify
                 await DoRemotePlaybackOperation(remote);
         }
 
-        private async Task DoLocalPlaybackOperation(Func<Task> action)
-        {
-            await action();
-            // SuppressWebAPI(); /// The Spotify Web Playback SDK will issue a state update event. The PlaybackChanged event is fired from our callback function. // TODO: better heuristics or permanent removal
-            FirePlaybackContextChanged(await dispatcher.GetPlayback());
-        }
+        /// Previously, the PlaybackContext was instead updated with information reported by the Spotify Web Playback SDK, which proved to be unreliable.
+        private async Task DoLocalPlaybackOperation(Func<Task> action) =>
+            await DoRemotePlaybackOperation(action);
 
         private async Task DoRemotePlaybackOperation(Func<Task> action)
         {
@@ -173,11 +159,6 @@ namespace Caerostris.Services.Spotify
             lastKnownPlaybackTimestamp = DateTime.UtcNow.AddMilliseconds(-50); // TODO: don't cheat
             PlaybackChanged?.Invoke(playback);
             PlaybackDisplayUpdate?.Invoke(GetProgressMs());
-        }
-
-        private void SuppressWebAPI()
-        {
-            webAPISuppressionTimestamp = DateTime.UtcNow;
         }
     }
 }

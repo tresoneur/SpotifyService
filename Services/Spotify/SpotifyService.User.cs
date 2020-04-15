@@ -14,11 +14,5 @@ namespace Caerostris.Services.Spotify
 
         public async Task<string> GetUserId() =>
             (await dispatcher.GetPrivateProfile()).Id;
-
-        /// <summary>
-        /// Returns the list of playlists that the user either owns or follows.
-        /// </summary>
-        public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists() =>
-            await dispatcher.GetUserPlaylists(await GetUserId());
     }
 }

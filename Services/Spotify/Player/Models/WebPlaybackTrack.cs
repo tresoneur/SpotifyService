@@ -36,33 +36,5 @@ namespace Caerostris.Services.Spotify.Player.Models
         [JsonProperty("is_playable")]
         public bool? IsPlayable { get; set; }
 #pragma warning restore CS8618
-
-        public FullTrack ApplyTo(FullTrack track)
-        {
-            /// Sometimes different metadata are supplied by the two different APIs for the exact same track
-            if (!(track.Id.Equals(Id, StringComparison.InvariantCulture)))
-            {
-                Album?.ApplyTo(track.Album);
-
-                track.Artists = Artists
-                    .Select((artist) =>
-                        new SimpleArtist()
-                        {
-                            Id = artist.Uri.Split(':').LastOrDefault(),
-                            Name = artist.Name,
-                            Uri = artist.Uri
-                        })
-                    .ToList();
-            }
-
-            track.DurationMs = DurationMs;
-            track.Id = Id;
-            track.Name = Name;
-            track.Type = SpotifyAPI.Web.Util.GetStringAttribute(Type);
-            track.Uri = Uri;
-            track.IsPlayable = IsPlayable;
-
-            return track;
-        }
     }
 }

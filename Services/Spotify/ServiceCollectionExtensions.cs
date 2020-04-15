@@ -2,7 +2,7 @@
 using Caerostris.Services.Spotify.Auth;
 using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
-using Cearostris.Services.Spotify.Web.Library;
+using Caerostris.Services.Spotify.Web.CachedDataProviders;
 using Microsoft.Extensions.DependencyInjection;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Models;
@@ -26,19 +26,24 @@ namespace Caerostris.Services.Spotify
             services.AddIndexedDB(dbStore =>
             {
                 dbStore.DbName = "SpotifyService";
-                dbStore.Version = 1;
+                dbStore.Version = 2;
 
                 dbStore.Stores.Add(new StoreSchema
                 {
-                    Name = nameof(SavedTrack),
+                    Name = nameof(SavedTrack),                   // TODO: elég fura így külön kiírogatni őket ide még egyszer
                     PrimaryKey = new IndexSpec { Auto = true }
-                    /*
-                    PrimaryKey = new IndexSpec { Name = "name", KeyPath = "track.name", Auto = true , Unique = false},
-                    Indexes = new List<IndexSpec>
-                    {
-                        new IndexSpec{Name="album", KeyPath = "track.album.name", Auto=false, Unique = false }
-                    }
-                    */
+                });
+
+                dbStore.Stores.Add(new StoreSchema
+                {
+                    Name = nameof(AudioFeatures),
+                    PrimaryKey = new IndexSpec { Auto = true }
+                });
+
+                dbStore.Stores.Add(new StoreSchema
+                {
+                    Name = nameof(AudioFeaturesManager),
+                    PrimaryKey = new IndexSpec { Auto = true }
                 });
             });
 
@@ -51,7 +56,11 @@ namespace Caerostris.Services.Spotify
 
             // Injected SpotifyService dependencies
             services.AddScoped<SpotifyWebAPI>();
+            services.AddScoped<IndexedDbCache<SavedTrack>>();
             services.AddScoped<SavedTrackManager>();
+            services.AddScoped<IndexedDbCache<AudioFeatures>>();
+            services.AddScoped<IndexedDbCache<string>>();
+            services.AddScoped<AudioFeaturesManager>();
             services.AddScoped<ImplicitGrantAuthManager>();
             services.AddScoped<WebAPIManager>();
             services.AddScoped<WebPlaybackSDKManager>();

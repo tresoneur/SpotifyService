@@ -26,29 +26,5 @@ namespace Caerostris.Services.Spotify.Player.Models
 
         [JsonProperty("track_window")]
         public WebPlaybackTrackWindow? TrackWindow { get; set; }
-
-        public PlaybackContext ApplyTo(PlaybackContext context)
-        {
-            context.RepeatState =
-                (RepeatMode == 0
-                    ? RepeatState.Off
-                    : (RepeatMode == 1
-                        ? RepeatState.Context
-                        : RepeatState.Track));
-
-            if (!(Context is null))
-                context.Context = Context;
-            context.ShuffleState = ShuffleState;
-            context.Timestamp = Timestamp;
-            context.ProgressMs = ProgressMs;
-            context.IsPlaying = !Paused;
-
-            if (!(TrackWindow?.CurrentTrack?.Type is null))
-                context.CurrentlyPlayingType = TrackWindow.CurrentTrack.Type;
-
-            TrackWindow?.CurrentTrack?.ApplyTo(context.Item);
-
-            return context;
-        }
     }
 }

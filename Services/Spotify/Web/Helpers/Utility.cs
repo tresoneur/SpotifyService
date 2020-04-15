@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SpotifyService.Services.Spotify.Web.Helpers
+namespace Caerostris.Services.Spotify.Web.Helpers
 {
     internal static class Utility
     {
@@ -15,7 +15,6 @@ namespace SpotifyService.Services.Spotify.Web.Helpers
         {
             const int rateLimitDelayMs = 100;
             int pageSize = 50;
-            if (typeof(T) == typeof(PlaylistTrack)) pageSize = 100; // TODO: nope
 
             var result = new List<T>();
 

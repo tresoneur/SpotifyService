@@ -27,14 +27,10 @@ namespace Caerostris.Services.Spotify
             PlaybackChanged += OnDevicePotentiallyChanged;
         }
 
-        private void OnPlaybackChanged(WebPlaybackState? state)
-        {
-            if (!(lastKnownPlayback is null) && !(state is null))
-            {
-                // state.ApplyTo(lastKnownPlayback); // TODO: better heuristics or permanent removal
-                FirePlaybackContextChanged(lastKnownPlayback);
-            }
-        }
+        /// <remarks>
+        /// Currently unused, updating the WebAPI context based on the WebPlaybackState turned out to be the wrong approach.
+        /// </remarks>
+        private void OnPlaybackChanged(WebPlaybackState? state) { }
 
         private async Task OnLocalPlayerReady(string deviceId)
         {
@@ -63,7 +59,7 @@ namespace Caerostris.Services.Spotify
                 }
             }
 
-            await Task.CompletedTask; // TODO: two event signatures
+            await Task.CompletedTask;
         }
     }
 }

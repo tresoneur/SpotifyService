@@ -16,14 +16,5 @@ namespace Caerostris.Services.Spotify.Player.Models
         [JsonProperty("uri")]
         public string Uri { get; set; }
 #pragma warning restore CS8618
-
-        public SimpleAlbum ApplyTo(SimpleAlbum album)
-        {
-            album.Images = Images;
-            album.Name = Name;
-            album.Uri = Uri;
-
-            return album;
-        }
     }
 }

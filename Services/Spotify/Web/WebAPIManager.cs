@@ -1,10 +1,9 @@
 ﻿using Caerostris.Services.Spotify.Web.ViewModels;
-using Cearostris.Services.Spotify.Web.Library;
+using Caerostris.Services.Spotify.Web.CachedDataProviders;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
-using SpotifyService.IndexedDB;
-using SpotifyService.Services.Spotify.Web.Helpers;
+using Caerostris.Services.Spotify.Web.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,11 +19,13 @@ namespace Caerostris.Services.Spotify.Web
     {
         private readonly SpotifyWebAPI api;
         private readonly SavedTrackManager savedTracks;
+        private readonly AudioFeaturesManager audioFeatures;
 
-        public WebAPIManager(SpotifyWebAPI spotifyWebApi, SavedTrackManager savedTrackManager)
+        public WebAPIManager(SpotifyWebAPI spotifyWebApi, SavedTrackManager savedTrackManager, AudioFeaturesManager audioFeaturesManager)
         {
             api = spotifyWebApi;
             savedTracks = savedTrackManager;
+            audioFeatures = audioFeaturesManager;
         }
 
         /// <summary>
@@ -88,7 +89,7 @@ namespace Caerostris.Services.Spotify.Web
             await api.SetVolumeAsync(volumePercent);
 
         public async Task<IEnumerable<SavedTrack>> GetSavedTracks(Action<int, int> progressCallback) =>
-            await savedTracks.GetSavedTracks(progressCallback, await GetMarket());
+            await savedTracks.GetData(progressCallback, await GetMarket());
         
         public async Task<ArtistProfile> GetArtist(string Id)
         {
@@ -146,14 +147,17 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<ErrorResponse> SaveTrack(string Id) =>
             await api.SaveTrackAsync(Id);
 
-        public async Task<int> GetSavedTrackCount(string market = "") =>
-            await savedTracks.GetSavedTrackCount(market);
-
         public async Task<ErrorResponse> RemoveSavedTrack(string Id) =>
             await api.RemoveSavedTracksAsync(new string[] { Id }.ToList());
 
         public async Task<SearchItem> Search(string query) =>
             await api.SearchItemsEscapedAsync(query, SearchType.All, 6, 0, await GetMarket());
+
+        public async Task<IEnumerable<AudioFeatures>> GetAudioFeatures(IEnumerable<string> trackIds, Action<int, int> progressCallback)
+        {
+            audioFeatures.TrackIds = trackIds;
+            return await audioFeatures.GetData(progressCallback, await GetMarket());
+        }
 
         #region Comfort
 
