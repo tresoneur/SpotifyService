@@ -60,6 +60,8 @@ namespace Caerostris.Services.Spotify
                     | Scope.UserReadCurrentlyPlaying
                     | Scope.PlaylistReadPrivate
                     | Scope.PlaylistReadCollaborative
+                    | Scope.PlaylistModifyPrivate
+                    | Scope.PlaylistModifyPublic
                     | Scope.UserLibraryModify
                     | Scope.Streaming
             );

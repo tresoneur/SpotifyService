@@ -4,6 +4,7 @@ using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -215,6 +216,9 @@ namespace Caerostris.Services.Spotify.Web
                 ? addedAt.Humanize()
                 : addedAt.ToString("yyyy-MM-dd");
         }
+
+        public static string HumanReadableMonth(int month) =>
+            new DateTime(2020, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
 
         private static string GetName(string name, Dictionary<string, string> externalUrls, string id, string delimiter, bool link, string? localUrl)
         {

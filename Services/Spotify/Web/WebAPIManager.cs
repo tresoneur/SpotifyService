@@ -159,6 +159,12 @@ namespace Caerostris.Services.Spotify.Web
             return await audioFeatures.GetData(progressCallback, await GetMarket());
         }
 
+        public async Task<FullPlaylist> CreatePlaylist(string userId, string title, string description) =>
+            await api.CreatePlaylistAsync(userId, title, false, false, description);
+
+        public async Task<ErrorResponse> AddPlaylistTracks(string playlistId, IEnumerable<string> trackUris) =>
+            await api.AddPlaylistTracksAsync(playlistId, trackUris.ToList(), null);
+
         #region Comfort
 
         private async Task<string> GetMarket()
