@@ -79,7 +79,7 @@ public static async Task Main(string[] args)
 
     // If you include the argument, the Authorization Code workflow will be used.
     // (Use https!)
-    // If no URI is passed, the Implicit Grant worflow will be used instead.
+    // If no URI is passed, the Implicit Grant workflow will be used instead.
     services.AddSpotify("<your auth server's uri>");    // <--
 
     var host = builder.Build();
