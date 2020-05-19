@@ -64,7 +64,7 @@ Your application should use Blazor WebAssembly version '3.2.0 Release Candidate'
 * Include the lines marked with '`<--`' in your `Program.cs`:
 
 ```cs
-using Caerostris.Services.Spotify; // <--
+using Caerostris.Services.Spotify;                      // <--
 
 // ...
 
@@ -79,13 +79,16 @@ public static async Task Main(string[] args)
 
     // If you include the argument, the Authorization Code workflow will be used.
     // (Use https!)
-    // If no argument is passed, the Implicit Grant worflow will be used instead.
-    services.AddSpotify("<your auth server's uri>"); // <--
+    // If no URI is passed, the Implicit Grant worflow will be used instead.
+    services.AddSpotify("<your auth server's uri>");    // <--
 
     var host = builder.Build();
 
     // Learn more about permissions in the example below.
-    await host.Services.InitializeSpotify("<your app's name>", <permissions>); // <--
+    await host.Services.InitializeSpotify(              // <--
+        "<your app's name>",                            // <--
+        "<your app's client ID>",                       // <--
+        <permissions>);                                 // <--
 
     await host.RunAsync();
 }

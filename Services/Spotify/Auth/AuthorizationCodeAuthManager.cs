@@ -43,7 +43,7 @@ namespace SpotifyService.Services.Spotify.Auth
                 return null;
 
             // The code is used as proof of identity from here on out
-            await SetWorkflow(new AuthWorkflow { State = code });
+            await SetWorkflow(new AuthWorkflow { State = code, Type = AuthWorkflowType.AuthCode });
 
             var result = await Request(
                 "register", 
@@ -62,14 +62,14 @@ namespace SpotifyService.Services.Spotify.Auth
 
         protected override async Task<AuthToken?> GetNewToken()
         {
-            var code = await GetWorkflowState();
+            var code = await GetWorkflow();
 
-            if (code is null)
+            if (code?.State is null || code.Type != AuthWorkflowType.AuthCode)
                 return null;
 
             var result = await Request(
                 "token",
-                new AuthCode { Code = code });
+                new AuthCode { Code = code.State });
 
             if (!string.IsNullOrEmpty(result.Error))
                 return null;

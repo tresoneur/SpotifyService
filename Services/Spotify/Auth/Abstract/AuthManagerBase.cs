@@ -38,7 +38,8 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             // Generate a state string and save it to LocalStorage to protect the client from CSRF.
             var state = new AuthWorkflow
             {
-                State = SessionTokenProvider.GetSessionToken()
+                State = SessionTokenProvider.GetSessionToken(),
+                Type = AuthWorkflowType.AntiCsrf
             };
             await SetWorkflow(state);
 
@@ -105,8 +106,10 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             if (!(GetQueryParam("error") is null))
                 return null;
 
-            string? state = await GetWorkflowState();
-            if (state is null || !state.Equals(GetQueryParam("state")))
+            AuthWorkflow? workflow = await GetWorkflow();
+            if (workflow?.State is null 
+                || !workflow.State.Equals(GetQueryParam("state"))
+                || workflow.Type != AuthWorkflowType.AntiCsrf)
                 return null;
 
             await RemoveWorkflow();
@@ -144,8 +147,8 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             return q[paramName];
         }
 
-        protected async Task<string?> GetWorkflowState() =>
-            (await localStorage.GetItem<AuthWorkflow?>(nameof(AuthWorkflow)))?.State;
+        protected async Task<AuthWorkflow?> GetWorkflow() =>
+            await localStorage.GetItem<AuthWorkflow?>(nameof(AuthWorkflow));
 
         protected async Task SetWorkflow(AuthWorkflow workflow) =>
             await localStorage.SetItem(nameof(AuthWorkflow), workflow);
