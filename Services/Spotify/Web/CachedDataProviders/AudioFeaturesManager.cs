@@ -3,7 +3,6 @@ using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify.Web.CachedDataProviders
@@ -22,7 +21,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         private const string trackIdsStoreName = nameof(AudioFeaturesManager);
 
         /// <summary>
-        /// Once set to a non-empty <see cref="IEnumerable{string}"/>, the next <see cref="CachedDataProviderBase{AudioFeatures}.GetData(Action{int, int}, string)"/> call will download the <see cref="AudioFeatures"/>.
+        /// Once set to a non-empty <see cref="IEnumerable{}"/>, the next <see cref="CachedDataProviderBase{AudioFeatures}.GetData(Action{int, int}, string)"/> call will download the <see cref="AudioFeatures"/>.
         /// </summary>
         public IEnumerable<string> TrackIds { private get; set; } = new List<string>();
 
@@ -76,7 +75,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
             var cachedTrackIds = await trackIdCache.Load(trackIdsStoreName, null);
 
             /// On first load. Theoretically, <see cref="TrackIds"/> should be loaded when the <see cref="AudioFeaturesManager"/> is constructed, but there it could not be awaited, so we couldn't guarantee a coherent state when checking cache validity.
-            if (TrackIds.Count() == 0 && cachedTrackIds.Count() > 0)
+            if (!TrackIds.Any() && cachedTrackIds.Any())
             {
                 TrackIds = cachedTrackIds;
                 return true;

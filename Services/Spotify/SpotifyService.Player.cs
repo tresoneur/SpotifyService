@@ -13,18 +13,16 @@ namespace Caerostris.Services.Spotify
         private string localDeviceId = "";
         private bool isPlaybackLocal = false;
 
+        private string deviceName;
 
-        private async Task InitializePlayer(WebPlaybackSDKManager injectedPlayer)
+        private async Task InitializePlayer(WebPlaybackSDKManager injectedPlayer, string deviceName)
         {
             player = injectedPlayer;
-
-            await player.Initialize(
-                GetAuthToken,
-                OnError,
-                OnPlaybackChanged,
-                OnLocalPlayerReady);
+            this.deviceName = deviceName;
 
             PlaybackChanged += OnDevicePotentiallyChanged;
+
+            AuthStateChanged += OnReInitializationPotenitallyNeeded;
         }
 
         /// <remarks>
@@ -60,6 +58,19 @@ namespace Caerostris.Services.Spotify
             }
 
             await Task.CompletedTask;
+        }
+
+        private async void OnReInitializationPotenitallyNeeded(bool authorized)
+        {
+            if (authorized)
+            {
+                await player.Initialize(
+                    GetAuthToken,
+                    OnError,
+                    OnPlaybackChanged,
+                    OnLocalPlayerReady,
+                    deviceName);
+            }
         }
     }
 }

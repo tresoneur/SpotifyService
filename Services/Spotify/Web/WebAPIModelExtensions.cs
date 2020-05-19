@@ -4,6 +4,7 @@ using SpotifyAPI.Web.Enums;
 using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -11,9 +12,9 @@ using System.Threading;
 
 namespace Caerostris.Services.Spotify.Web
 {
-    public static class WebAPIModelExtensions
+    public static class WebApiModelExtensions
     {
-        public const string Unknown = "Unkown";
+        public const string Unknown = "Unknown";
         public const string Loading = "Loading...";
         public static string Unavailable(string kind) => $"Current {kind} unavailable";
 
@@ -34,7 +35,7 @@ namespace Caerostris.Services.Spotify.Web
 
         #region PlaybackContext
 
-        public static bool HasValidItem(this PlaybackContext? playback) =>
+        public static bool HasValidItem([NotNullWhen(true)] this PlaybackContext? playback) =>
             !(playback?.Item is null || playback.Item.DurationMs == 0);
 
         public static bool IsPlayingOrNull(this PlaybackContext? playback) =>
@@ -56,7 +57,7 @@ namespace Caerostris.Services.Spotify.Web
             else if (playback.Item is null)
                 return Unavailable("track");
             else
-                return GetName(playback.Item.Name, playback.Item.ExternUrls, playback.Item.Id, "", link, localUrl);
+                return GetName(playback.Item.Name, playback.Item.ExternUrls, playback.Item.Id, link, localUrl);
         }
 
         public static string GetArtists(this PlaybackContext? playback, bool links = false, string localUrl = "")
@@ -105,13 +106,13 @@ namespace Caerostris.Services.Spotify.Web
             HumanReadableTotalLength(album.Tracks.Sum(t => t.DurationMs));
 
         public static string GetName(this SimpleAlbum album, bool link = false, string localUrl = "") =>
-            GetName(album.Name, album.ExternalUrls, album.Id, string.Empty, link, localUrl);
+            GetName(album.Name, album.ExternalUrls, album.Id, link, localUrl);
 
         private static string GetName(this FullAlbum album, bool links = false, string localUrl = "") =>
-            GetName(album.Name, album.ExternalUrls, album.Id, string.Empty, links, localUrl);
+            GetName(album.Name, album.ExternalUrls, album.Id, links, localUrl);
 
         public static string GetName(this FullArtist artist, bool link = false, string localUrl = "") =>
-            GetName(artist.Name, artist.ExternalUrls, artist.Id, string.Empty, link, localUrl);
+            GetName(artist.Name, artist.ExternalUrls, artist.Id, link, localUrl);
 
         #endregion
 
@@ -122,7 +123,7 @@ namespace Caerostris.Services.Spotify.Web
             HumanReadableTotalLength(playlist.Tracks.Sum(t => t.Track.DurationMs));
 
         public static string GetName(this SimplePlaylist playlist, bool link = false, string localUrl = "") =>
-            GetName(playlist.Name, playlist.ExternalUrls, playlist.Id, string.Empty, link, localUrl);
+            GetName(playlist.Name, playlist.ExternalUrls, playlist.Id, link, localUrl);
 
         #endregion
 
@@ -132,7 +133,10 @@ namespace Caerostris.Services.Spotify.Web
         /// <summary>
         /// Creates a formatted string from a collection of genres.
         /// </summary>
-        /// <param name="limit">These lists can get quite lenghty with genres sometimes numbering in the dozens. Set a limit > 0 to get a list of only the first <paramref name="limit"/> genres.</param>
+        /// <param name="limit">
+        /// These lists can get quite lengthy with genres sometimes numbering in the dozens.
+        /// Set a limit > 0 to get a list of only the first <paramref name="limit"/> genres.
+        /// </param>
         /// <returns></returns>
         public static string GetGenres(this FullArtist artist, int limit = 0)
         {
@@ -140,16 +144,11 @@ namespace Caerostris.Services.Spotify.Web
                 return string.Empty;
 
             const string delimiter = ", ";
-            var builder = new StringBuilder();
-            foreach (var genre in artist.Genres)
-            {
-                builder.Append($"{Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(genre)}{delimiter}");
-
-                if (--limit == 0)
-                    break;
-            }
-
-            return builder.ToString().Substring(0, builder.Length - delimiter.Length);
+            return string.Join(
+                delimiter,
+                artist.Genres
+                    .Take((limit != 0) ? limit : artist.Genres.Count)
+                    .Select(genre => Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(genre)));
         }
 
         #endregion
@@ -168,11 +167,9 @@ namespace Caerostris.Services.Spotify.Web
                 return string.Empty;
 
             const string delimiter = ", ";
-            var builder = new StringBuilder();
-            foreach (var artist in artists)
-                builder.Append(GetName(artist.Name, artist.ExternalUrls, artist.Id, delimiter, link, localUrl));
-
-            return builder.ToString().Substring(0, builder.Length - delimiter.Length);
+            return string.Join(
+                delimiter,
+                artists.Select(artist => GetName(artist.Name, artist.ExternalUrls, artist.Id, link, localUrl)));
         }
 
         public static string ThousandsSeparator(this int num)
@@ -220,11 +217,11 @@ namespace Caerostris.Services.Spotify.Web
         public static string HumanReadableMonth(int month) =>
             new DateTime(2020, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
 
-        private static string GetName(string name, Dictionary<string, string> externalUrls, string id, string delimiter, bool link, string? localUrl)
+        private static string GetName(string name, Dictionary<string, string> externalUrls, string id, bool link, string? localUrl)
         {
             return (link && !(externalUrls is null))
-                ? $"<a href=\"{(string.IsNullOrEmpty(localUrl) ? externalUrls["spotify"] : $"{localUrl}{id}")}\">{name}</a>{delimiter}"
-                : $"{name}{delimiter}";
+                ? $"<a href=\"{(string.IsNullOrEmpty(localUrl) ? externalUrls["spotify"] : $"{localUrl}{id}")}\">{name}</a>"
+                : $"{name}";
         }
 
         #endregion

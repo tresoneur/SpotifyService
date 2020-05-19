@@ -2,13 +2,13 @@
 
 namespace Caerostris.Services.Spotify.Auth.Models
 {
-    public class ImplicitGrantToken
+    public class AuthToken
     {
-        public ImplicitGrantToken() { }
+        public AuthToken() { }
 
-        public ImplicitGrantToken(int expiresInSec, string accessToken)
+        public AuthToken(int expiresInSec, string accessToken, DateTime? timestamp = null)
         {
-            Timestamp = DateTime.UtcNow.ToString("o");
+            Timestamp = timestamp?.ToString("o") ?? DateTime.UtcNow.ToString("o");
             ExpiresInSec = expiresInSec;
             AccessToken = accessToken;
         }
@@ -19,11 +19,12 @@ namespace Caerostris.Services.Spotify.Auth.Models
 
         public string AccessToken { get; set; } = "";
 
-
-        public bool IsExpired()
+        public bool IsAlmostExpired()
         {
+            const int paddingSec = 5 * 60;
+
             var expiryDate = DateTime.Parse(Timestamp, null, System.Globalization.DateTimeStyles.RoundtripKind);
-            expiryDate = expiryDate.AddSeconds(ExpiresInSec);
+            expiryDate = expiryDate.AddSeconds(ExpiresInSec - paddingSec);
             return (expiryDate < DateTime.UtcNow);
         }
     }

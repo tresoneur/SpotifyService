@@ -1,6 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web;
-using Caerostris.Services.Spotify.Web.ViewModels;
-using SpotifyAPI.Web.Models;
+﻿using SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,15 +27,15 @@ namespace Caerostris.Services.Spotify
         public async Task<IEnumerable<SavedTrack>> GetSavedTracks() =>
             await dispatcher.GetSavedTracks((c, t) => LibraryLoadingProgress?.Invoke(c, t));
 
-        public async Task<bool> IsTrackSaved(string Id) => // TODO: track relinking, use linked_from ID when removing
-            await dispatcher.GetTrackSavedStatus(Id);
+        public async Task<bool> IsTrackSaved(string id) => // TODO: track relinking, use linked_from ID when removing
+            await dispatcher.GetTrackSavedStatus(id);
 
-        public async Task ToogleTrackSaved(string Id)
+        public async Task ToogleTrackSaved(string id)
         {
-            if (await IsTrackSaved(Id))
-                await dispatcher.RemoveSavedTrack(Id);
+            if (await IsTrackSaved(id))
+                await dispatcher.RemoveSavedTrack(id);
             else
-                await dispatcher.SaveTrack(Id);
+                await dispatcher.SaveTrack(id);
         }
 
         /// <summary>

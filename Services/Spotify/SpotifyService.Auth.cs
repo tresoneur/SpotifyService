@@ -2,17 +2,17 @@
 using SpotifyAPI.Web.Enums;
 using System;
 using System.Threading.Tasks;
+using SpotifyService.Services.Spotify.Auth.Abstract;
 
 namespace Caerostris.Services.Spotify
 {
-    /// <remarks>
-    /// Methods within the Auth section do not use the SpotifyWebAPIProxy, because the SpotifyWebAPI does not contain any OAuth functionality.
-    /// </remarks>
     public sealed partial class SpotifyService
     {
-        private const string clientId = "87b0c14e92bc4958b1b6fe15259d2577";
+        private string clientId;
 
-        private ImplicitGrantAuthManager authManager;
+        private Scope permissions;
+
+        private AuthManagerBase authManager;
 
         /// <summary>
         /// Fires when the auth state changes: either the current token expires or a new token is acquired.
@@ -23,8 +23,11 @@ namespace Caerostris.Services.Spotify
         private bool authGrantedWhenLastChecked = false;
 
 
-        private async Task InitializeAuth(ImplicitGrantAuthManager injectedAuthManager)
+        private async Task InitializeAuth(AuthManagerBase injectedAuthManager, string clientId, Scope permissionScopes)
         {
+            this.clientId = clientId;
+            permissions = permissionScopes;
+
             authManager = injectedAuthManager;
 
             api.TokenType = "Bearer";
@@ -45,37 +48,26 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         /// <remarks>
         /// The callback Uri has to be added to the whitelist on the Spotify Developer Dashboard.
-        /// Any permissions needed will have to be passed to <see cref="AuthManager.StartProcess(string, string, Scope)"/>.
+        /// Any permissions needed will have to be passed to <see cref="ImplicitGrantAuthManager.StartProcess(string, string, Scope)"/>.
         /// </remarks>
-        public async Task StartAuthWithImplicitGrant(string callbackUri)
+        public async Task StartAuth(string callbackUri)
         {
             await authManager.StartProcess(
                 clientId,
                 callbackUri,
-                Scope.UserReadPrivate
-                    | Scope.UserReadEmail
-                    | Scope.UserReadPlaybackState
-                    | Scope.UserModifyPlaybackState
-                    | Scope.UserLibraryRead
-                    | Scope.UserReadCurrentlyPlaying
-                    | Scope.PlaylistReadPrivate
-                    | Scope.PlaylistReadCollaborative
-                    | Scope.PlaylistModifyPrivate
-                    | Scope.PlaylistModifyPublic
-                    | Scope.UserLibraryModify
-                    | Scope.Streaming
+                permissions
             );
         }
 
         /// <summary>
-        /// The OAuth2 Implicit Grant process involves a callback to an address provided by the caller of <see cref="StartAuthWithImplicitGrant(string)"/> to redirect to after authentication success or failure.
+        /// The OAuth2 Implicit Grant process involves a callback to an address provided by the caller of <see cref="StartAuth(string)"/> to redirect to after authentication success or failure.
         /// Invoke this function at the given address.
         /// </summary>
         /// <returns>Whether the process was successful</returns>
-        public async Task<bool> ContinueAuthWithImplicitGrantOnCallback()
+        public async Task<bool> ContinueAuthOnCallback(string callbackUri)
         {
             // Internal redirection inside (forceReload: false)
-            string? token = await authManager.StoreTokenOnCallback();
+            string? token = await authManager.GetTokenOnCallback(callbackUri);
 
             if (token is null)
                 return false;
@@ -91,10 +83,13 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Checks whether there is a valid token to use.
         /// </summary>
-        public async Task<bool> AuthGranted()
+        public async Task<bool> IsAuthGranted()
         {
             return (!((await GetAuthToken()) is null));
         }
+
+        public async Task Logout() =>
+            await authManager.Logout();
 
         private async Task CheckAuth()
         {
@@ -102,10 +97,11 @@ namespace Caerostris.Services.Spotify
             if (!(token is null))
                 api.AccessToken = token;
 
-            bool authGranted = (await AuthGranted());
+            bool authGranted = (await IsAuthGranted());
             if (authGranted != authGrantedWhenLastChecked)
             {
                 authGrantedWhenLastChecked = authGranted;
+                Log($"Authorization state changed to: {authGranted}");
                 AuthStateChanged?.Invoke(authGranted);
             }
         }

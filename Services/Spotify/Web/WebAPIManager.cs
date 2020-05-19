@@ -12,16 +12,15 @@ using System.Threading.Tasks;
 namespace Caerostris.Services.Spotify.Web
 {
     /// <remarks>
-    /// This class is not intented to follow an actual proxy pattern, because most of the functionality offered by SpotifyWebAPI is never used by this service.
     /// The chief goal of this class is to provide in-memory, LocalStorage and IndexedDB caching as well as to automatically supply parameters to SpotifyWebAPI to enable e.g. Track Relinking.
     /// </remarks>
-    public class WebAPIManager
+    public class WebApiManager
     {
         private readonly SpotifyWebAPI api;
         private readonly SavedTrackManager savedTracks;
         private readonly AudioFeaturesManager audioFeatures;
 
-        public WebAPIManager(SpotifyWebAPI spotifyWebApi, SavedTrackManager savedTrackManager, AudioFeaturesManager audioFeaturesManager)
+        public WebApiManager(SpotifyWebAPI spotifyWebApi, SavedTrackManager savedTrackManager, AudioFeaturesManager audioFeaturesManager)
         {
             api = spotifyWebApi;
             savedTracks = savedTrackManager;
@@ -53,7 +52,7 @@ namespace Caerostris.Services.Spotify.Web
             if (contextUri is null && trackUri is null)
                 return new ErrorResponse();
             else if (contextUri is null && !(trackUri is null))
-                return await api.ResumePlaybackAsync(deviceId: "", contextUri: "", (new string[] { trackUri }).ToList(), offset: "");
+                return await api.ResumePlaybackAsync(deviceId: "", contextUri: "", (new [] { trackUri }).ToList(), offset: "");
             else
                 return await api.ResumePlaybackAsync(deviceId: "", contextUri: contextUri, null, offset: trackUri ?? "");
         }
@@ -91,16 +90,16 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<IEnumerable<SavedTrack>> GetSavedTracks(Action<int, int> progressCallback) =>
             await savedTracks.GetData(progressCallback, await GetMarket());
         
-        public async Task<ArtistProfile> GetArtist(string Id)
+        public async Task<ArtistProfile> GetArtist(string id)
         {
             var market = await GetMarket();
 
-            var fullArtist = api.GetArtistAsync(Id);
-            var relatedArtists = api.GetRelatedArtistsAsync(Id);
-            var artistAlbums = Utility.DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(Id, offset: o, limit: p, market: market));
-            var artistTopTracks = api.GetArtistsTopTracksAsync(Id, country: market);
+            var fullArtist = api.GetArtistAsync(id);
+            var relatedArtists = api.GetRelatedArtistsAsync(id);
+            var artistAlbums = Utility.DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(id, offset: o, limit: p, market: market));
+            var artistTopTracks = api.GetArtistsTopTracksAsync(id, country: market);
 
-            await Task.WhenAll(new Task[] { fullArtist, relatedArtists, artistAlbums, artistTopTracks });
+            await Task.WhenAll(fullArtist, relatedArtists, artistAlbums, artistTopTracks);
 
             return new ArtistProfile
             {
@@ -111,44 +110,43 @@ namespace Caerostris.Services.Spotify.Web
             };
         }
 
-        public async Task<CompleteAlbum> GetAlbum(string Id)
+        public async Task<CompleteAlbum> GetAlbum(string id)
         {
             var market = await GetMarket();
 
-            var fullAlbum = api.GetAlbumAsync(Id, market: market);
+            var fullAlbum = api.GetAlbumAsync(id, market: market);
             var albumTracks = Utility.DownloadPagedResources(
-                (o, p) => api.GetAlbumTracksAsync(id: Id, offset: o, limit: p, market: market));
+                (o, p) => api.GetAlbumTracksAsync(id: id, offset: o, limit: p, market: market));
 
-            await Task.WhenAll(new Task[]{fullAlbum, albumTracks});
+            await Task.WhenAll(fullAlbum, albumTracks);
 
             return new CompleteAlbum { Album = fullAlbum.Result, Tracks = albumTracks.Result };
         }
 
-        public async Task<CompletePlaylist> GetPlaylist(string Id)
+        public async Task<CompletePlaylist> GetPlaylist(string id)
         {
             var market = await GetMarket();
 
-            var fullPlaylist = api.GetPlaylistAsync(Id, market: market);
+            var fullPlaylist = api.GetPlaylistAsync(id, market: market);
             var playlistTracks = Utility.DownloadPagedResources(
-                (o, p) => api.GetPlaylistTracksAsync(playlistId: Id, offset: o, limit: p, market: market));
+                (o, p) => api.GetPlaylistTracksAsync(playlistId: id, offset: o, limit: p, market: market));
 
-            await Task.WhenAll(new Task[]{fullPlaylist, playlistTracks});
+            await Task.WhenAll(fullPlaylist, playlistTracks);
 
             return new CompletePlaylist { Playlist = fullPlaylist.Result, Tracks = playlistTracks.Result };
         }
 
-        public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists(string Id) =>
-            await Utility.DownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: Id, offset: o, limit: p));
+        public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists(string id) =>
+            await Utility.DownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: id, offset: o, limit: p));
 
-        // TODO: listás verzió
-        public async Task<bool> GetTrackSavedStatus(string Id) =>
-            (await api.CheckSavedTracksAsync(new string[] { Id }.ToList())).List.FirstOrDefault();
+        public async Task<bool> GetTrackSavedStatus(string id) =>
+            (await api.CheckSavedTracksAsync(new [] { id }.ToList())).List.FirstOrDefault();
 
-        public async Task<ErrorResponse> SaveTrack(string Id) =>
-            await api.SaveTrackAsync(Id);
+        public async Task<ErrorResponse> SaveTrack(string id) =>
+            await api.SaveTrackAsync(id);
 
         public async Task<ErrorResponse> RemoveSavedTrack(string Id) =>
-            await api.RemoveSavedTracksAsync(new string[] { Id }.ToList());
+            await api.RemoveSavedTracksAsync(new [] { Id }.ToList());
 
         public async Task<SearchItem> Search(string query) =>
             await api.SearchItemsEscapedAsync(query, SearchType.All, 6, 0, await GetMarket());

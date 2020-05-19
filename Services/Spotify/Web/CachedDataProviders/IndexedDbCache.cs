@@ -1,19 +1,17 @@
 ﻿using SpotifyService.IndexedDB;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace Caerostris.Services.Spotify.Web.CachedDataProviders
 {
     public class IndexedDbCache<TData>
     {
-        private IndexedDBManager indexedDb;
+        private readonly IndexedDBManager indexedDb;
 
-        public IndexedDbCache(IndexedDBManager indexedDBManager)
+        public IndexedDbCache(IndexedDBManager indexedDbManager)
         {
-            indexedDb = indexedDBManager;
+            indexedDb = indexedDbManager;
         }
 
         public async Task Save(string storeName, IEnumerable<TData> entities)
@@ -40,7 +38,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
                 records.AddRange(paginatedRecords);
                 progressCallback?.Invoke(records.Count, cachedCount);
 
-                if (paginatedRecords.Count() < count)
+                if (paginatedRecords.Count < count)
                     break;
 
                 offset += count;

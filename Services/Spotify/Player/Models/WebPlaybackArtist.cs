@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using SpotifyAPI.Web.Models;
 
 namespace Caerostris.Services.Spotify.Player.Models
 {

@@ -32,7 +32,7 @@ namespace Caerostris.Services.Spotify
         private void InitializePlayback()
         {
             playbackContextPollingTimer = new System.Threading.Timer(
-                callback: async _ => { if (await AuthGranted()) FirePlaybackContextChanged(await GetPlayback()); },
+                callback: async _ => { if (await IsAuthGranted()) FirePlaybackContextChanged(await GetPlayback()); },
                 state: null,
                 dueTime: 0,
                 period: 1000
@@ -65,8 +65,8 @@ namespace Caerostris.Services.Spotify
         public async Task PlayTrack(string? contextUri, string? trackUri) =>
             await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(contextUri, trackUri));
 
-        public async Task PlayTracks(IEnumerable<string> Uris) =>
-            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(Uris));
+        public async Task PlayTracks(IEnumerable<string> uris) =>
+            await DoRemotePlaybackOperation(async () => await dispatcher.SetPlayback(uris));
 
         public async Task Pause() =>
             await DoPlaybackOperation(player.Pause, dispatcher.PausePlayback);
@@ -129,11 +129,11 @@ namespace Caerostris.Services.Spotify
 
         public int GetProgressMs()
         {
-            if (lastKnownPlayback is null || lastKnownPlayback.Item is null || lastKnownPlaybackTimestamp is null)
+            if (lastKnownPlayback?.Item is null || lastKnownPlaybackTimestamp is null)
                 return 0;
 
-            var extraProgressIfPlaying = DateTime.UtcNow - lastKnownPlaybackTimestamp;
-            long totalProgressIfPlaying = Convert.ToInt64(extraProgressIfPlaying.Value.TotalMilliseconds) + lastKnownPlayback.ProgressMs;
+            var extraProgressIfPlaying = DateTime.UtcNow - lastKnownPlaybackTimestamp.Value;
+            long totalProgressIfPlaying = Convert.ToInt64(extraProgressIfPlaying.TotalMilliseconds) + lastKnownPlayback.ProgressMs;
             try
             {
                 int progressIfPlayingSane = Convert.ToInt32(totalProgressIfPlaying);
@@ -150,7 +150,7 @@ namespace Caerostris.Services.Spotify
 
         private void FirePlaybackContextChanged(PlaybackContext? playback)
         {
-            FireIfContextChanged(playback);
+            FireIfContextChanged(lastKnownPlayback, playback);
 
             if (playback is null)
                 return;

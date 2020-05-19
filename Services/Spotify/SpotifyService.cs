@@ -4,6 +4,8 @@ using Caerostris.Services.Spotify.Web;
 using SpotifyAPI.Web;
 using System;
 using System.Threading.Tasks;
+using SpotifyAPI.Web.Enums;
+using SpotifyService.Services.Spotify.Auth.Abstract;
 
 namespace Caerostris.Services.Spotify
 {
@@ -12,28 +14,28 @@ namespace Caerostris.Services.Spotify
     /// </remarks>
     public sealed partial class SpotifyService : IDisposable
     {
-        private SpotifyWebAPI api;
-        private WebAPIManager dispatcher;
+        private readonly SpotifyWebAPI api;
+        private readonly WebApiManager dispatcher;
 
-        private (ImplicitGrantAuthManager, WebPlaybackSDKManager) injected;
+        private (AuthManagerBase, WebPlaybackSDKManager) injected;
 
 #pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods.
-        public SpotifyService(SpotifyWebAPI spotifyWebApi, ImplicitGrantAuthManager injectedAuthManager, WebAPIManager injectedWebAPIManager, WebPlaybackSDKManager injectedPlayer)
+        public SpotifyService(SpotifyWebAPI spotifyWebApi, AuthManagerBase injectedAuthManager, WebApiManager injectedWebApiManager, WebPlaybackSDKManager injectedPlayer)
 #pragma warning restore CS8618
         {
             api = spotifyWebApi;
 
-            dispatcher = injectedWebAPIManager;
+            dispatcher = injectedWebApiManager;
 
             injected = (injectedAuthManager, injectedPlayer);
         }
 
-        public async Task Initialize()
+        public async Task Initialize(string deviceName, string clientId, Scope permissionScopes)
         {
             var (injectedAuthManager, injectedPlayer) = injected;
 
-            await InitializeAuth(injectedAuthManager);
-            await InitializePlayer(injectedPlayer);
+            await InitializePlayer(injectedPlayer, deviceName);
+            await InitializeAuth(injectedAuthManager, clientId, permissionScopes);
             InitializePlayback();
         }
 

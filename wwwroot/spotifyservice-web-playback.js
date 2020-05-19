@@ -1,16 +1,18 @@
 ﻿/// Spotify Web Playback SDK wrapper for SpotifyService
-class WebPlaybackSDKWrapper {
+class WebPlaybackSdkWrapper {
 
     constructor() {
         this.Player = null;
         this.GetOAuthToken = null;
         this.OnError = null;
         this.DeviceId = null;
-        this.Name = "Caerostris";
+        this.Name = "Uninitialized Web Player";
         this.LoggingPrefix = "SpotifyService Local Playback Device: ";
     }
 
-    Initialize = (dotNetWebPlaybackSDKManager) => {
+    Initialize = (dotNetWebPlaybackSdkManager, name) => {
+        this.Name = name;
+
         const dotNetMethods =
         {
             GetAuthToken: 'GetAuthToken',
@@ -20,7 +22,7 @@ class WebPlaybackSDKWrapper {
         }
 
         this.OnError = (message) => {
-            dotNetWebPlaybackSDKManager
+            dotNetWebPlaybackSdkManager
                 .invokeMethodAsync(dotNetMethods.OnError, message.message);
         }
 
@@ -28,7 +30,7 @@ class WebPlaybackSDKWrapper {
         this.Player = new Spotify.Player({
             name: this.Name,
             getOAuthToken: (callback) => {
-                dotNetWebPlaybackSDKManager
+                dotNetWebPlaybackSdkManager
                     .invokeMethodAsync(dotNetMethods.GetAuthToken)
                     .then(token => {
                         if (token == null || token === "")
@@ -56,22 +58,22 @@ class WebPlaybackSDKWrapper {
 
         // Info
         this.Player.addListener('player_state_changed', state => {
-            /// The Playback SDK returns garbage position data on every other player_state_changed event (thousands separator in position field)
+            // The Playback SDK returns garbage position data on every other player_state_changed event (thousands separator in position field)
             if (state && state.hasOwnProperty('position') && Number.isInteger(state.position))
-                /// The built-in JSInterop deserializer does not support Newtonsoft.JSON annotations/attributes
-                dotNetWebPlaybackSDKManager
+                // The built-in JSInterop deserializer does not support Newtonsoft.JSON annotations/attributes
+                dotNetWebPlaybackSdkManager
                     .invokeMethodAsync(dotNetMethods.OnPlayerStateChanged, JSON.stringify(state));
         });
 
         this.Player.addListener('ready', ({ device_id }) => {
             this.DeviceId = device_id;
             console.log(this.LoggingPrefix + 'Ready with the following ID: ' + device_id);
-            dotNetWebPlaybackSDKManager
+            dotNetWebPlaybackSdkManager
                 .invokeMethodAsync(dotNetMethods.OnReady, device_id);
         });
 
         this.Player.addListener('not_ready', () => {
-            this.OnError({ message: "Local device has gone offline. Re-run WebPlaybackSDKManager initialization." })
+            this.OnError({ message: "Local device has gone offline. Re-run WebPlaybackSdkManager initialization." });
             console.log(this.LoggingPrefix + 'Device ID has gone offline.');
         });
 
@@ -79,5 +81,7 @@ class WebPlaybackSDKWrapper {
     }
 }
 
-window.SpotifyService.WebPlaybackSDKWrapper = new WebPlaybackSDKWrapper();
+window.SpotifyService = new Object();
+window.SpotifyService.WebPlaybackSDKWrapper = new WebPlaybackSdkWrapper();
+
 window.onSpotifyWebPlaybackSDKReady = () => { /* Pointless requirement of the SDK */ }

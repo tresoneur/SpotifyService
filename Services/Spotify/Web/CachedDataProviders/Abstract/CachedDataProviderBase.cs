@@ -1,7 +1,6 @@
 ﻿using Caerostris.Services.Spotify.Web.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -14,7 +13,8 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
     {
         protected Task<IEnumerable<TData>>? lastRetrieval; // TODO: weak reference
 
-        public async Task<IEnumerable<TData>> GetData(Action<int, int> progressCallback, string market = "") // TODO: ez nem szálbiztos
+        /// <remarks>Not thread-safe, but Blazor WA scheduling isn't preemptive.</remarks>
+        public async Task<IEnumerable<TData>> GetData(Action<int, int> progressCallback, string market = "")
         {
             /// Serving from memory cache.
             if (!(lastRetrieval is null))
@@ -30,7 +30,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
             if (await IsStorageCacheValid())
             {
                 var cachedData = await SetAsLastRetrievalAndAwait(() => LoadStorageCache(progressCallback, market));
-                if (cachedData.Count() > 0)
+                if (cachedData.Any())
                     return cachedData;
             }
             else

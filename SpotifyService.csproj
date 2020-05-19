@@ -18,6 +18,11 @@
 
 
   <ItemGroup>
+    <ProjectReference Include="..\SpotifyAuthServer\SpotifyAuthServer.Model\SpotifyAuthServer.Model.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <Reference Include="Blazor.Extensions.Storage">
       <HintPath>..\Storage\src\Blazor.Extensions.Storage\bin\Release\netstandard2.0\Blazor.Extensions.Storage.dll</HintPath>
     </Reference>

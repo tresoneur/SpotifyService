@@ -11,10 +11,10 @@ namespace Caerostris.Services.Spotify.Player
     /// </remarks>
     public class WebPlaybackSDKManager : IDisposable
     {
-        private const string JSWrapper = "SpotifyService.WebPlaybackSDKWrapper";
+        private const string JsWrapper = "SpotifyService.WebPlaybackSDKWrapper";
 
-        private readonly IJSRuntime JSRuntime;
-        private DotNetObjectReference<WebPlaybackSDKManager> selfReference;
+        private readonly IJSRuntime jsRuntime;
+        private readonly DotNetObjectReference<WebPlaybackSDKManager> selfReference;
 
 
         private Func<Task<string?>> authTokenCallback =
@@ -29,9 +29,9 @@ namespace Caerostris.Services.Spotify.Player
         private Func<string, Task> onDeviceReady =
             async (_) => { await Task.CompletedTask; };
 
-        public WebPlaybackSDKManager(IJSRuntime injectedJSRuntime)
+        public WebPlaybackSDKManager(IJSRuntime injectedJsRuntime)
         {
-            JSRuntime = injectedJSRuntime;
+            jsRuntime = injectedJsRuntime;
             selfReference = DotNetObjectReference.Create(this);
         }
 
@@ -48,14 +48,15 @@ namespace Caerostris.Services.Spotify.Player
             Func<Task<string?>> authTokenCallback,
             Func<string, Task> errorCallback,
             Action<WebPlaybackState?> playbackContextCallback,
-            Func<string, Task> onDeviceReady)
+            Func<string, Task> onDeviceReady,
+            string name)
         {
             this.authTokenCallback = authTokenCallback;
             this.errorCallback = errorCallback;
             this.playbackContextCallback = playbackContextCallback;
             this.onDeviceReady = onDeviceReady;
 
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Initialize", selfReference);
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Initialize", selfReference, name);
         }
 
         [JSInvokable]
@@ -81,22 +82,22 @@ namespace Caerostris.Services.Spotify.Player
         }
 
         public async Task Play() =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Play");
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Play");
 
         public async Task Pause() =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Pause");
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Pause");
 
         public async Task Next() =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Next");
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Next");
 
         public async Task Previous() =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Previous");
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Previous");
 
         public async Task Seek(int positionMs) =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.Seek", positionMs);
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Seek", positionMs);
 
         public async Task SetVolume(int volumePercent) =>
-            await JSRuntime.InvokeVoidAsync($"{JSWrapper}.SetVolume", volumePercent / 100d);
+            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.SetVolume", volumePercent / 100d);
 
         public void Dispose()
         {

@@ -4,9 +4,7 @@ using Caerostris.Services.Spotify.Web.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using SpotifyService.IndexedDB;
 
 namespace Caerostris.Services.Spotify.Web.CachedDataProviders
 {

@@ -1,6 +1,6 @@
 ﻿namespace Caerostris.Services.Spotify.Auth.Models
 {
-    public class ImplicitGrantWorkflow
+    public class AuthWorkflow
     {
         public string State { get; set; } = "";
     }
