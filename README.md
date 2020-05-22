@@ -94,7 +94,7 @@ Your application should use Blazor WebAssembly version '3.2.0 Release Candidate'
 
 * Include the `.js` files needed for _SpotifyService_'s functionality in your `index.html`:
 
-    ```
+    ```html
     <script src="_content/SpotifyService/blazor.extensions.storage.js"></script>
     <script src="_content/SpotifyService.IndexedDB/indexedDb.Blazor.js"></script>
     <script src="_content/SpotifyService/spotifyservice-web-playback.js"></script>
