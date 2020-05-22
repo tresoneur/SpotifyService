@@ -57,51 +57,49 @@ Your application should use Blazor WebAssembly version '3.2.0 Release Candidate'
 
 ## How to use
 
-* (For now --) Build the [WebAssembly-compatible fork of _SpotifyAPI-NET_](https://github.com/tresoneur/.SpotifyAPI-NET) and place the resulting dll where `SpotifyService.csproj` expects it to be. (TODO)
-
-* Include [_SpotifyService_](https://github.com/tresoneur/SpotifyService) in your solution, and run a `dotnet restore`. (TODO)
+* Include the [_SpotifyService_](https://github.com/tresoneur/SpotifyService) project in your solution, and run a `dotnet restore`.
 
 * Include the lines marked with '`<--`' in your `Program.cs`:
 
-```cs
-using Caerostris.Services.Spotify;                      // <--
+    ```cs
+    using Caerostris.Services.Spotify;                      // <--
 
-// ...
+    // ...
 
-public static async Task Main(string[] args)
-{
-    var builder = WebAssemblyHostBuilder.CreateDefault(args);
-    builder.RootComponents.Add<App>("app");
+    public static async Task Main(string[] args)
+    {
+        var builder = WebAssemblyHostBuilder.CreateDefault(args);
+        builder.RootComponents.Add<App>("app");
 
-    var services = builder.Services;
+        var services = builder.Services;
 
-    // ... 
+        // ... 
 
-    // If you include the argument, the Authorization Code workflow will be used.
-    // (Use https!)
-    // If no URI is passed, the Implicit Grant workflow will be used instead.
-    services.AddSpotify("<your auth server's uri>");    // <--
+        // If you include the argument, the Authorization Code workflow will be used.
+        // (Use https!)
+        // If no URI is passed, the Implicit Grant workflow will be used instead.
+        services.AddSpotify("<your auth server's uri>");    // <--
 
-    var host = builder.Build();
+        var host = builder.Build();
 
-    // Learn more about permissions in the example below.
-    await host.Services.InitializeSpotify(              // <--
-        "<your app's name>",                            // <--
-        "<your app's client ID>",                       // <--
-        <permissions>);                                 // <--
+        // Learn more about permissions in the example below.
+        await host.Services.InitializeSpotify(              // <--
+            "<your app's name>",                            // <--
+            "<your app's client ID>",                       // <--
+            <permissions>);                                 // <--
 
-    await host.RunAsync();
-}
-```
+        await host.RunAsync();
+    }
+    ```
 
-* Include the js files needed for _SpotifyService_'s functionality in your `index.html`:
+* Include the `.js` files needed for _SpotifyService_'s functionality in your `index.html`:
 
-```
-<script src="_content/SpotifyService/blazor.extensions.storage.js"></script>
-<script src="_content/SpotifyService.IndexedDB/indexedDb.Blazor.js"></script>
-<script src="_content/SpotifyService/spotifyservice-web-playback.js"></script>
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
-```
+    ```
+    <script src="_content/SpotifyService/blazor.extensions.storage.js"></script>
+    <script src="_content/SpotifyService.IndexedDB/indexedDb.Blazor.js"></script>
+    <script src="_content/SpotifyService/spotifyservice-web-playback.js"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    ```
 
 * For tips on how to use _SpotifyService_ in your Blazor components, see the [Examples section](#examples) below.
 
@@ -111,7 +109,7 @@ public static async Task Main(string[] args)
 
     * the state of app authorization changed;
     
-    * an UI update is needed or advised;
+    * a UI update is needed or advised;
     
     * loading progress updates;
 
@@ -132,7 +130,7 @@ public class Program
 {
     // Issued by Spotify, register your app and view its ID at
     //  https://developer.spotify.com/dashboard/
-    private const string clientId = "87b0c14e92bc4958b1b6fe15259d2577";
+    private const string clientId = "0123456789abcdef0123456789abcdef";
 
     // All permissions SpotifyService currently uses
     private const Scope permissions = Scope.UserReadPrivate
