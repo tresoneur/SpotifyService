@@ -1,10 +1,10 @@
 ﻿using Caerostris.Services.Spotify.Auth;
 using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
-using SpotifyAPI.Web;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
 using System;
 using System.Threading.Tasks;
-using SpotifyAPI.Web.Enums;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using SpotifyService.Services.Spotify.Auth.Abstract;
 
 namespace Caerostris.Services.Spotify

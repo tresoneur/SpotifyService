@@ -8,7 +8,7 @@ using System.Web;
 using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
 using Microsoft.AspNetCore.Components;
-using SpotifyAPI.Web.Enums;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using SpotifyService.Services.Spotify.Auth.Models;
 
 namespace SpotifyService.Services.Spotify.Auth.Abstract
@@ -48,7 +48,7 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             builder.Append($"?response_type={type switch { AuthType.ImplicitGrant => "token", AuthType.AuthorizationCode => "code", _ => throw new ArgumentOutOfRangeException() }}");
             builder.Append($"&client_id={clientId}");
             if (scope != Scope.None)
-                builder.Append($"&scope={SpotifyAPI.Web.Util.GetStringAttribute(scope, separator: " ")}");
+                builder.Append($"&scope={Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Util.GetStringAttribute(scope, separator: " ")}");
             builder.Append($"&redirect_uri={redirectUri}");
             builder.Append($"&state={state.State}");
             builder.Append("&show_dialog=true"); // Spotify won't show the dialog by default even if the request contains new scopes

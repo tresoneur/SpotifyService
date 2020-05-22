@@ -1,5 +1,5 @@
-﻿using SpotifyAPI.Web;
-using SpotifyAPI.Web.Models;
+﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

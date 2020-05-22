@@ -1,4 +1,4 @@
-﻿using SpotifyService.IndexedDB;
+﻿using Caerostris.Services.Spotify.IndexedDB;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

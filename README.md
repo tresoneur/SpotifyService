@@ -45,7 +45,7 @@ To create a high-level Spotify API for FOSS Blazor WebAssembly projects, providi
         * Get a detailed audio analysis of each of the user's saved tracks.
 
     * __Extensions__
-        * Extension methods for displaying _SpotifyAPI-NET.Model_ entities with ease and in a human-readable format.
+        * Extension methods for displaying _Caerostris.Services.Spotify.Web.SpotifyAPI-NET.Model_ entities with ease and in a human-readable format.
 
 ## Demo
 
@@ -57,7 +57,7 @@ Your application should use Blazor WebAssembly version '3.2.0 Release Candidate'
 
 ## How to use
 
-* (For now --) Build the [WebAssembly-compatible fork of _SpotifyAPI-NET_](https://github.com/tresoneur/SpotifyAPI-NET) and place the resulting dll where `SpotifyService.csproj` expects it to be. (TODO)
+* (For now --) Build the [WebAssembly-compatible fork of _SpotifyAPI-NET_](https://github.com/tresoneur/.SpotifyAPI-NET) and place the resulting dll where `SpotifyService.csproj` expects it to be. (TODO)
 
 * Include [_SpotifyService_](https://github.com/tresoneur/SpotifyService) in your solution, and run a `dotnet restore`. (TODO)
 

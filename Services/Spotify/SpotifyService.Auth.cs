@@ -1,5 +1,5 @@
 ﻿using Caerostris.Services.Spotify.Auth;
-using SpotifyAPI.Web.Enums;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using System;
 using System.Threading.Tasks;
 using SpotifyService.Services.Spotify.Auth.Abstract;

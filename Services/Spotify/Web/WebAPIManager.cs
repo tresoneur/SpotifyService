@@ -1,8 +1,8 @@
 ﻿using Caerostris.Services.Spotify.Web.ViewModels;
 using Caerostris.Services.Spotify.Web.CachedDataProviders;
-using SpotifyAPI.Web;
-using SpotifyAPI.Web.Enums;
-using SpotifyAPI.Web.Models;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
 using Caerostris.Services.Spotify.Web.Helpers;
 using System;
 using System.Collections.Generic;

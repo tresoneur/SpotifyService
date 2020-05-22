@@ -1,5 +1,5 @@
 ﻿using Caerostris.Services.Spotify.Web.ViewModels;
-using SpotifyAPI.Web.Models;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
 using System;
 using System.Threading.Tasks;
 

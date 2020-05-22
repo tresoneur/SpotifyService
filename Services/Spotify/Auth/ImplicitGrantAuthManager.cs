@@ -1,7 +1,7 @@
 ﻿using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
 using Microsoft.AspNetCore.Components;
-using SpotifyAPI.Web.Enums;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using System.Threading.Tasks;
 using SpotifyService.Services.Spotify.Auth.Abstract;
 using SpotifyService.Services.Spotify.Auth.Models;
