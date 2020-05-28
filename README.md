@@ -6,7 +6,7 @@ This project is currently under development, and breaking changes are expected t
 
 ## The goal of this project
 
-To create a high-level Spotify API for FOSS Blazor WebAssembly projects, providing services such as Spotify playback in the browser, managing user authentication, access to the Spotify Web API, IndexedDB caching and more.
+To create a high-level Spotify API for FOSS Blazor WebAssembly projects, providing services such as Spotify playback in the browser, managing OAuth authorization, access to the Spotify Web API, IndexedDB caching and more.
 
 ## Areas currently implemented
 
@@ -14,7 +14,7 @@ To create a high-level Spotify API for FOSS Blazor WebAssembly projects, providi
     
     * __Implicit grant flow__: authenticate without any backend involvement: everything is managed in the client by _SpotifyService_. Users will have to re-authorize your app every hour.
     
-    * __Authorization code flow__: configure and deploy the ASP.NET Core _SpotifyAuthServer_ in just a few minutes. Users will only have to authorize your Blazor webapp once, _SpotifyService_ and the auth server will take care of the rest.
+    * __Authorization code flow__: configure and deploy the ASP.NET Core [_SpotifyAuthServer_](https://github.com/tresoneur/SpotifyAuthServer) in just a few minutes. Users will only have to authorize your Blazor webapp once, _SpotifyService_ and the auth server will take care of the rest.
 
 * __Playback__: in the browser, using the Spotify Web Playback SDK.
 

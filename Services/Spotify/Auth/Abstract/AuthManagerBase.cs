@@ -77,7 +77,6 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
                 else
                     memoryCachedToken = null;
             }
-
             memoryCachedToken = localStorage.GetItem<AuthToken?>(nameof(AuthToken)).AsTask();
             var localStorageCachedToken = await memoryCachedToken;
 
@@ -97,9 +96,6 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             return (await memoryCachedToken)?.AccessToken;
         }
 
-        /// <remarks>
-        /// Has to save the token with <see cref="SetToken"/>.
-        /// </remarks>
         /// <param name="redirectUri">The same URI that was passed to the <see cref="StartProcess"/> method.</param>
         public async Task<string?> GetTokenOnCallback(string redirectUri)
         {
@@ -114,7 +110,8 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
 
             await RemoveWorkflow();
 
-            return (await GetFirstToken(redirectUri))?.AccessToken;
+            memoryCachedToken = GetFirstToken(redirectUri);
+            return (await memoryCachedToken)?.AccessToken;
         }
 
         /// <summary>
@@ -127,6 +124,9 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             memoryCachedToken = null;
         }
 
+        /// <remarks>
+        /// Has to save the token with <see cref="SetToken"/>.
+        /// </remarks>
         protected abstract Task<AuthToken?> GetFirstToken(string redirectUri);
 
         /// <remarks>
