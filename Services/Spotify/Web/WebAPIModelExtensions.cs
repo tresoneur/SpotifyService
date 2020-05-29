@@ -108,8 +108,8 @@ namespace Caerostris.Services.Spotify.Web
         public static string GetName(this SimpleAlbum album, bool link = false, string localUrl = "") =>
             GetName(album.Name, album.ExternalUrls, album.Id, link, localUrl);
 
-        private static string GetName(this FullAlbum album, bool links = false, string localUrl = "") =>
-            GetName(album.Name, album.ExternalUrls, album.Id, links, localUrl);
+        public static string GetName(this FullAlbum album, bool link = false, string localUrl = "") =>
+            GetName(album.Name, album.ExternalUrls, album.Id, link, localUrl);
 
         public static string GetName(this FullArtist artist, bool link = false, string localUrl = "") =>
             GetName(artist.Name, artist.ExternalUrls, artist.Id, link, localUrl);
@@ -123,6 +123,9 @@ namespace Caerostris.Services.Spotify.Web
             HumanReadableTotalLength(playlist.Tracks.Sum(t => t.Track.DurationMs));
 
         public static string GetName(this SimplePlaylist playlist, bool link = false, string localUrl = "") =>
+            GetName(playlist.Name, playlist.ExternalUrls, playlist.Id, link, localUrl);
+
+        public static string GetName(this FullPlaylist playlist, bool link = false, string localUrl = "") =>
             GetName(playlist.Name, playlist.ExternalUrls, playlist.Id, link, localUrl);
 
         #endregion
@@ -172,7 +175,7 @@ namespace Caerostris.Services.Spotify.Web
                 artists.Select(artist => GetName(artist.Name, artist.ExternalUrls, artist.Id, link, localUrl)));
         }
 
-        public static string ThousandsSeparator(this int num)
+        public static string WithThousandsSeparator(this int num)
         {
             return num.ToString("#,##0").Replace(',', ' ');
         }
