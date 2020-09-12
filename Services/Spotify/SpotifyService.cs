@@ -34,7 +34,7 @@ namespace Caerostris.Services.Spotify
         {
             var (injectedAuthManager, injectedPlayer) = injected;
 
-            await InitializePlayer(injectedPlayer, deviceName);
+            InitializePlayer(injectedPlayer, deviceName);
             await InitializeAuth(injectedAuthManager, clientId, permissionScopes);
             InitializePlayback();
         }

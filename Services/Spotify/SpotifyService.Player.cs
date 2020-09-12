@@ -15,7 +15,7 @@ namespace Caerostris.Services.Spotify
 
         private string deviceName;
 
-        private async Task InitializePlayer(WebPlaybackSDKManager injectedPlayer, string deviceName)
+        private void InitializePlayer(WebPlaybackSDKManager injectedPlayer, string deviceName)
         {
             player = injectedPlayer;
             this.deviceName = deviceName;

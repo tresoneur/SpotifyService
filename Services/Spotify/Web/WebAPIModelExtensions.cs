@@ -182,7 +182,7 @@ namespace Caerostris.Services.Spotify.Web
 
         /// <summary>
         /// Returns the URL of the smallest image that fits the height criterion. 
-        /// If none is found, it returns the tallest image in the collection.
+        /// If none are found, it returns the tallest image in the collection.
         /// If the collection is empty, it returns null.
         /// </summary>
         public static string? AtLeastOfHeight(this IEnumerable<Image> images, int height)
