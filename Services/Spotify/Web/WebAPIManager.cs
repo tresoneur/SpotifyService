@@ -140,13 +140,19 @@ namespace Caerostris.Services.Spotify.Web
             await Utility.DownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: id, offset: o, limit: p));
 
         public async Task<bool> GetTrackSavedStatus(string id) =>
-            (await api.CheckSavedTracksAsync(new [] { id }.ToList())).List.FirstOrDefault();
+            (await api.CheckSavedTracksAsync(new[] { id }.ToList())).List.FirstOrDefault();
+
+        public async Task<IDictionary<string, bool>> GetTrackSavedStatus(IEnumerable<string> ids) =>
+            new Dictionary<string, bool>(
+                (await Utility.PaginateAndDownloadResources<string, bool>(
+                    ids, async (ids) => (await api.CheckSavedTracksAsync(ids.ToList())).List, 50))
+                    .Zip(ids, (isSaved, id) => new KeyValuePair<string, bool>(id, isSaved)));
 
         public async Task<ErrorResponse> SaveTrack(string id) =>
             await api.SaveTrackAsync(id);
 
-        public async Task<ErrorResponse> RemoveSavedTrack(string Id) =>
-            await api.RemoveSavedTracksAsync(new [] { Id }.ToList());
+        public async Task<ErrorResponse> RemoveSavedTrack(string id) =>
+            await api.RemoveSavedTracksAsync(new [] { id }.ToList());
 
         public async Task<SearchItem> Search(string query) =>
             await api.SearchItemsEscapedAsync(query, SearchType.All, 6, 0, await GetMarket());

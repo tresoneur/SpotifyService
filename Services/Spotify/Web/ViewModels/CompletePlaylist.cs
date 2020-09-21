@@ -5,8 +5,8 @@ namespace Caerostris.Services.Spotify.Web.ViewModels
 {
     public class CompletePlaylist
     {
-        public FullPlaylist Playlist { get; set; } = null!;
+        public FullPlaylist Playlist { get; set; } = default!;
 
-        public IEnumerable<PlaylistTrack> Tracks { get; set; } = null!;
+        public IEnumerable<PlaylistTrack> Tracks { get; set; } = default!;
     }
 }

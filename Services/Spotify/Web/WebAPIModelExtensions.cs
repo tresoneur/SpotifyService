@@ -38,8 +38,11 @@ namespace Caerostris.Services.Spotify.Web
         public static bool HasValidItem([NotNullWhen(true)] this PlaybackContext? playback) =>
             !(playback?.Item is null || playback.Item.DurationMs == 0);
 
-        public static bool IsPlayingOrNull(this PlaybackContext? playback) =>
+        public static bool IsPlaying(this PlaybackContext? playback) =>
             playback?.IsPlaying ?? false;
+
+        public static bool IsTrackPlaying(this PlaybackContext? playback, string trackUri) =>
+            playback.IsPlaying() && playback?.Item?.Uri == trackUri;
 
         public static bool GetShuffleState(this PlaybackContext? playback) =>
             playback?.ShuffleState ?? false;
@@ -75,17 +78,17 @@ namespace Caerostris.Services.Spotify.Web
 
         #region Track
 
-        public static string HumanReadableAddedAt(this SavedTrack track) =>
-            HumanReadableAddedAt(track.AddedAt);
+        public static string HumanReadableAddedAt(this SavedTrack track) => // TODO: del meg a lentieket is 
+            AsHumanReadableAddedAt(track.AddedAt);
 
-        public static string HumanReadableAddedAt(this PlaylistTrack track) =>
-            HumanReadableAddedAt(track.AddedAt);
+        public static string HumanReadableAddedAt(this PlaylistTrack track) => // TODO: del
+            AsHumanReadableAddedAt(track.AddedAt);
 
-        public static string HumanReadableDuration(this FullTrack track) =>
-            HumanReadableDuration(track.DurationMs);
+        public static string HumanReadableDuration(this FullTrack track) =>// TODO: del
+            AsHumanReadableDuration(track.DurationMs);
 
-        public static string HumanReadableDuration(this SimpleTrack track) =>
-            HumanReadableDuration(track.DurationMs);
+        public static string HumanReadableDuration(this SimpleTrack track) =>// TODO: del
+            AsHumanReadableDuration(track.DurationMs);
 
         public static string OriginalUri(this FullTrack track)
         {
@@ -191,7 +194,7 @@ namespace Caerostris.Services.Spotify.Web
                 ?? images.OrderBy(i => i.Height).LastOrDefault()?.Url;
         }
 
-        private static string HumanReadableDuration(int durationMs)
+        public static string AsHumanReadableDuration(this int durationMs)
         {
             var duration = TimeSpan.FromMilliseconds(durationMs);
             return (duration > TimeSpan.FromHours(1))
@@ -210,7 +213,7 @@ namespace Caerostris.Services.Spotify.Web
                     collectionSeparator: " ");
         }
 
-        private static string HumanReadableAddedAt(DateTime addedAt)
+        public static string AsHumanReadableAddedAt(this DateTime addedAt)
         {
             return (addedAt.AddDays(14) > DateTime.UtcNow)
                 ? addedAt.Humanize()
@@ -220,7 +223,7 @@ namespace Caerostris.Services.Spotify.Web
         public static string HumanReadableMonth(int month) =>
             new DateTime(2020, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
 
-        private static string GetName(string name, Dictionary<string, string> externalUrls, string id, bool link, string? localUrl)
+        private static string GetName(string name, Dictionary<string, string> externalUrls, string id, bool link, string? localUrl) // TODO: del, use OpenContextLink
         {
             return (link && !(externalUrls is null))
                 ? $"<a href=\"{(string.IsNullOrEmpty(localUrl) ? externalUrls["spotify"] : $"{localUrl}{id}")}\">{name}</a>"

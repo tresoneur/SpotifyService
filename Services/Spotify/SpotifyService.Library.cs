@@ -20,6 +20,11 @@ namespace Caerostris.Services.Spotify
         public event Func<Task> UserPlaylistsChanged;
 
         /// <summary>
+        /// Fired when a track is saved or unsaved. The parameters supplied are the ID of the track and the new state, respectively.
+        /// </summary>
+        public event Action<string, bool> SavedStateChanged;
+
+        /// <summary>
         /// Gets the user's saved tracks. This can either take several minutes or return with the cached values almost immediately. 
         /// Will try its best to serve fresh data, but may fail in certain cases (e.g. when the number of saved tracks didn't change since tracks were last cached).
         /// Subscribe to <seealso cref="LibraryLoadingProgress"/> so that progress may be shown to the user.
@@ -27,15 +32,76 @@ namespace Caerostris.Services.Spotify
         public async Task<IEnumerable<SavedTrack>> GetSavedTracks() =>
             await dispatcher.GetSavedTracks((c, t) => LibraryLoadingProgress?.Invoke(c, t));
 
-        public async Task<bool> IsTrackSaved(string id) => // TODO: track relinking, use linked_from ID when removing
-            await dispatcher.GetTrackSavedStatus(id);
+        /// <summary>
+        /// Fetches saved state for a track.
+        /// </summary>
+        /// <param name="id">The ID of the track.</param>
+        /// <param name="linkedFromId">The ID of the track the given track was relinked from.</param>
+        /// <returns>Whether either track has been saved by the user.</returns>
+        public async Task<bool> IsTrackSaved(string id, string? linkedFromId = null) =>
+            (await dispatcher.GetTrackSavedStatus(id) 
+                || (!(linkedFromId is null) && await dispatcher.GetTrackSavedStatus(linkedFromId)));
 
-        public async Task ToogleTrackSaved(string id)
+        /// <summary>
+        /// Fetches saved state for a list of tracks.
+        /// </summary>
+        /// <param name="idLinkedFromIdPairs">
+        /// A list of pairs of track IDs such that the first item of a pair is the shown track's ID and the second the ID of the track the first track was relinked from.
+        /// </param>
+        /// <returns>
+        /// For each unique pair, a key-value pair such that the key is the ID of the shown track and the value is the logical value of whether either (shown, relinked-from) track has been saved by the user.
+        /// </returns>
+        public async Task<IDictionary<string, bool>> AreTracksSaved(IEnumerable<(string, string?)> idLinkedFromIdPairs)
+        { 
+            var ids = idLinkedFromIdPairs.Select(p => p.Item1)
+                ?? new List<string>();
+
+            var relinkedFromIds = idLinkedFromIdPairs.Where(p => !(p.Item2 is null)).Select(p => p.Item2!.ToString()) 
+                ?? new List<string>();
+
+            var isSaved = dispatcher.GetTrackSavedStatus(ids);
+            var isRelinkedFromSaved = dispatcher.GetTrackSavedStatus(relinkedFromIds);
+
+            await Task.WhenAll(isSaved, isRelinkedFromSaved);
+
+            foreach (var isRelinkedFromTrackSaved in isRelinkedFromSaved.Result.Where(kv => kv.Value))
+            {
+                var id = idLinkedFromIdPairs
+                    .Where(p => p.Item2 == isRelinkedFromTrackSaved.Key)
+                    .First()
+                    .Item1;
+
+                isSaved.Result[id] = isRelinkedFromTrackSaved.Value;
+            }
+
+            return isSaved.Result;
+        }
+
+        public async Task ToogleTrackSaved(string id, string? linkedFromId)
         {
+            // Set new state via the API.
+            var removed = false;
+
             if (await IsTrackSaved(id))
+            {
                 await dispatcher.RemoveSavedTrack(id);
-            else
+                removed = true;
+            }
+
+            if (!(linkedFromId is null) && await IsTrackSaved(linkedFromId))
+            {
+                await dispatcher.RemoveSavedTrack(linkedFromId);
+                removed = true;
+            }
+
+            if (!removed)
                 await dispatcher.SaveTrack(id);
+
+            // Fire the corresponding event.
+            SavedStateChanged?.Invoke(id, !removed);
+
+            if (!(linkedFromId is null))
+                SavedStateChanged?.Invoke(linkedFromId, !removed);
         }
 
         /// <summary>
