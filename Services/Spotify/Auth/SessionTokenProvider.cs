@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Security.Cryptography;
-using System.Web;
 
 namespace SpotifyService.Services.Spotify.Auth
 {
     public static class SessionTokenProvider
     {
-        private static readonly RNGCryptoServiceProvider random = new RNGCryptoServiceProvider();
+        // RNGCryptoServiceProvider not supported by the .NET 5 browser-wasm runtime
+        private static readonly Random random = new Random();
 
         public static string GetSessionToken()
         {
             byte[] array = new byte[256]; 
-            random.GetBytes(array);
+            random.NextBytes(array);
 
             return Convert.ToBase64String(array)
                 .Replace('/', '_')
