@@ -2,7 +2,7 @@
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using System;
 using System.Threading.Tasks;
-using SpotifyService.Services.Spotify.Auth.Abstract;
+using Caerostris.Services.Spotify.Auth.Abstract;
 
 namespace Caerostris.Services.Spotify
 {
@@ -12,7 +12,7 @@ namespace Caerostris.Services.Spotify
 
         private Scope permissions;
 
-        private AuthManagerBase authManager;
+        private readonly AuthManagerBase authManager;
 
         /// <summary>
         /// Fires when the auth state changes: either the current token expires or a new token is acquired.
@@ -22,13 +22,15 @@ namespace Caerostris.Services.Spotify
         private System.Threading.Timer authPollingTimer;
         private bool authGrantedWhenLastChecked = false;
 
+        /// <summary>
+        /// Relative URL that may be used to coordinate several components.
+        /// </summary>
+        public readonly string RelativeCallbackUrl = "/callback";
 
-        private async Task InitializeAuth(AuthManagerBase injectedAuthManager, string clientId, Scope permissionScopes)
+        private async Task InitializeAuth(string clientId, Scope permissionScopes)
         {
             this.clientId = clientId;
             permissions = permissionScopes;
-
-            authManager = injectedAuthManager;
 
             api.TokenType = "Bearer";
             await CheckAuth();
@@ -85,7 +87,7 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         public async Task<bool> IsAuthGranted()
         {
-            return (!((await GetAuthToken()) is null));
+            return ((await GetAuthToken()) is not null);
         }
 
         public async Task Logout() =>
@@ -94,7 +96,7 @@ namespace Caerostris.Services.Spotify
         private async Task CheckAuth()
         {
             string? token = await GetAuthToken();
-            if (!(token is null))
+            if (token is not null)
                 api.AccessToken = token;
 
             bool authGranted = (await IsAuthGranted());

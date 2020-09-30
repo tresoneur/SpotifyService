@@ -40,7 +40,7 @@ namespace Caerostris.Services.Spotify
         /// <returns>Whether either track has been saved by the user.</returns>
         public async Task<bool> IsTrackSaved(string id, string? linkedFromId = null) =>
             (await dispatcher.GetTrackSavedStatus(id) 
-                || (!(linkedFromId is null) && await dispatcher.GetTrackSavedStatus(linkedFromId)));
+                || ((linkedFromId is not null) && await dispatcher.GetTrackSavedStatus(linkedFromId)));
 
         /// <summary>
         /// Fetches saved state for a list of tracks.
@@ -53,28 +53,24 @@ namespace Caerostris.Services.Spotify
         /// </returns>
         public async Task<IDictionary<string, bool>> AreTracksSaved(IEnumerable<(string, string?)> idLinkedFromIdPairs)
         { 
-            var ids = idLinkedFromIdPairs.Select(p => p.Item1)
-                ?? new List<string>();
+            var ids = idLinkedFromIdPairs.Select(p => p.Item1).ToList();
+            var relinkedFromIds = idLinkedFromIdPairs.Where(p => (p.Item2 is not null)).Select(p => p.Item2!.ToString()).ToList();
 
-            var relinkedFromIds = idLinkedFromIdPairs.Where(p => !(p.Item2 is null)).Select(p => p.Item2!.ToString()) 
-                ?? new List<string>();
+            var isSaved = await dispatcher.GetTrackSavedStatus(ids.Concat(relinkedFromIds));
 
-            var isSaved = dispatcher.GetTrackSavedStatus(ids);
-            var isRelinkedFromSaved = dispatcher.GetTrackSavedStatus(relinkedFromIds);
+            var primaryOrRelinkedFromSaved = new Dictionary<string, bool>();
+            ids.ForEach(id => primaryOrRelinkedFromSaved[id] = isSaved[id]);
 
-            await Task.WhenAll(isSaved, isRelinkedFromSaved);
-
-            foreach (var isRelinkedFromTrackSaved in isRelinkedFromSaved.Result.Where(kv => kv.Value))
+            foreach (var relinkedFromTrackKey in isSaved.Keys.Except(primaryOrRelinkedFromSaved.Keys))
             {
                 var id = idLinkedFromIdPairs
-                    .Where(p => p.Item2 == isRelinkedFromTrackSaved.Key)
-                    .First()
+                    .First(p => p.Item2 == relinkedFromTrackKey)
                     .Item1;
 
-                isSaved.Result[id] = isRelinkedFromTrackSaved.Value;
+                primaryOrRelinkedFromSaved[id] = isSaved[relinkedFromTrackKey];
             }
 
-            return isSaved.Result;
+            return primaryOrRelinkedFromSaved;
         }
 
         public async Task ToogleTrackSaved(string id, string? linkedFromId)
@@ -88,7 +84,7 @@ namespace Caerostris.Services.Spotify
                 removed = true;
             }
 
-            if (!(linkedFromId is null) && await IsTrackSaved(linkedFromId))
+            if ((linkedFromId is not null) && await IsTrackSaved(linkedFromId))
             {
                 await dispatcher.RemoveSavedTrack(linkedFromId);
                 removed = true;
@@ -100,7 +96,7 @@ namespace Caerostris.Services.Spotify
             // Fire the corresponding event.
             SavedStateChanged?.Invoke(id, !removed);
 
-            if (!(linkedFromId is null))
+            if (linkedFromId is not null)
                 SavedStateChanged?.Invoke(linkedFromId, !removed);
         }
 

@@ -2,7 +2,6 @@
 {
     public enum AuthWorkflowType
     {
-        Unspecified,
         AntiCsrf,
         AuthCode
     }

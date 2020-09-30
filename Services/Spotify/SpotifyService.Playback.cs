@@ -24,7 +24,7 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Fires when the display of the PlaybackContext needs to be updated with the supplied arguments.
         /// This does not necessarily mean that a new PlaybackContext was acquired. 
-        /// Suggested use: periodically refresh the UI.
+        /// Suggested use: refresh the UI periodically.
         /// </summary>
         public event Action<int>? PlaybackDisplayUpdate;
         private Timer playbackUpdateTimer;
@@ -84,7 +84,7 @@ namespace Caerostris.Services.Spotify
 
         public async Task SetShuffle(bool shuffle)
         {
-            if (!(lastKnownPlayback is null))
+            if (lastKnownPlayback is not null)
                 lastKnownPlayback.ShuffleState = shuffle;
 
             await DoRemotePlaybackOperation(async () => await dispatcher.SetShuffle(shuffle));
@@ -92,7 +92,7 @@ namespace Caerostris.Services.Spotify
 
         public async Task SetRepeat(RepeatState state)
         {
-            if (!(lastKnownPlayback is null))
+            if (lastKnownPlayback is not null)
                 lastKnownPlayback.RepeatState = state;
 
             await DoRemotePlaybackOperation(async () => await dispatcher.SetRepeatMode(state));
@@ -100,7 +100,7 @@ namespace Caerostris.Services.Spotify
 
         public async Task SetVolume(int volumePercent)
         {
-            if (!(lastKnownPlayback?.Device is null))
+            if (lastKnownPlayback?.Device is not null)
                 lastKnownPlayback.Device.VolumePercent = volumePercent;
 
             await DoPlaybackOperation(
@@ -123,7 +123,7 @@ namespace Caerostris.Services.Spotify
         private async Task DoRemotePlaybackOperation(Func<Task> action)
         {
             await action();
-            await Task.Delay(200); /// The Spotify Web API sends incorrect results when queried too soon after a playback operation.
+            await Task.Delay(200); // The Spotify Web API sends incorrect results when queried too soon after a playback operation.
             FirePlaybackContextChanged(await dispatcher.GetPlayback());
         }
 
@@ -138,9 +138,9 @@ namespace Caerostris.Services.Spotify
             {
                 int progressIfPlayingSane = Convert.ToInt32(totalProgressIfPlaying);
                 var bestGuess = ((lastKnownPlayback.IsPlaying) ? progressIfPlayingSane : lastKnownPlayback.ProgressMs);
-                var totalDuractionMs = lastKnownPlayback.Item.DurationMs;
+                var totalDurationMs = lastKnownPlayback.Item.DurationMs;
 
-                return ((bestGuess > totalDuractionMs) ? totalDuractionMs : bestGuess);
+                return ((bestGuess > totalDurationMs) ? totalDurationMs : bestGuess);
             }
             catch (OverflowException)
             {

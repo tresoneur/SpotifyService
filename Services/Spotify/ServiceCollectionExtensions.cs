@@ -1,20 +1,18 @@
 ﻿using Blazor.Extensions.Storage;
 using Caerostris.Services.Spotify.Auth;
+using Caerostris.Services.Spotify.Auth.Abstract;
+using Caerostris.Services.Spotify.Configuration;
 using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
 using Caerostris.Services.Spotify.Web.CachedDataProviders;
 using Microsoft.Extensions.DependencyInjection;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
 using Caerostris.Services.Spotify.IndexedDB;
 using System;
 using System.Threading.Tasks;
-using Blazor.Extensions.Storage.Interfaces;
-using Microsoft.AspNetCore.Components;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
-using SpotifyService.Services.Spotify.Auth;
-using SpotifyService.Services.Spotify.Auth.Abstract;
-using SpotifyService.Services.Spotify.Configuration;
+using Caerostris.Services.Spotify.Web.ViewModels;
 
 namespace Caerostris.Services.Spotify
 {
@@ -31,8 +29,8 @@ namespace Caerostris.Services.Spotify
             // IndexedDB
             services.AddIndexedDB(dbStore =>
             {
-                dbStore.DbName = "SpotifyService";
-                dbStore.Version = 2;
+                dbStore.DbName = nameof(SpotifyService);
+                dbStore.Version = 3;
 
                 dbStore.Stores.Add(new StoreSchema
                 {
@@ -51,12 +49,18 @@ namespace Caerostris.Services.Spotify
                     Name = nameof(AudioFeaturesManager),
                     PrimaryKey = new IndexSpec { Auto = true }
                 });
+
+                dbStore.Stores.Add(new StoreSchema
+                {
+                    Name = nameof(Sections),
+                    PrimaryKey = new IndexSpec { Auto = true }
+                });
             });
 
             // "Blazor WebAssembly apps don't currently have a concept of DI scopes. Scoped-registered services behave like Singleton services." <see ref="https://docs.microsoft.com/en-us/aspnet/core/blazor/dependency-injection?view=aspnetcore-3.1"/>
 
             // Injected SpotifyService dependencies
-            services.AddScoped<SpotifyServiceConfiguration>(_ => new SpotifyServiceConfiguration { AuthServerApiBase = authServerApiBase });
+            services.AddScoped<SpotifyServiceConfiguration>(_ => new () { AuthServerApiBase = authServerApiBase });
             services.AddScoped<SpotifyWebAPI>();
             services.AddScoped<IndexedDbCache<SavedTrack>>();
             services.AddScoped<SavedTrackManager>();
@@ -70,7 +74,7 @@ namespace Caerostris.Services.Spotify
                 services.AddScoped<AuthManagerBase, AuthorizationCodeAuthManager>();
 
             services.AddScoped<WebApiManager>();
-            services.AddScoped<WebPlaybackSDKManager>();
+            services.AddScoped<WebPlaybackSdkManager>();
             
             // The dependency injection module will take care of the Dispose() call
             services.AddScoped<SpotifyService>();

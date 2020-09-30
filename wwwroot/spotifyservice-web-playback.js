@@ -17,7 +17,6 @@ class WebPlaybackSdkWrapper {
         {
             GetAuthToken: 'GetAuthToken',
             OnError: 'OnError',
-            OnPlayerStateChanged: 'OnPlaybackChanged',
             OnReady: 'OnDeviceReady'
         }
 
@@ -57,14 +56,6 @@ class WebPlaybackSdkWrapper {
         this.SetVolume = (volume) => this.Player.setVolume(volume);
 
         // Info
-        this.Player.addListener('player_state_changed', state => {
-            // The Playback SDK returns garbage position data on every other player_state_changed event (thousands separator in position field)
-            if (state && state.hasOwnProperty('position') && Number.isInteger(state.position))
-                // The built-in JSInterop deserializer does not support Newtonsoft.JSON annotations/attributes
-                dotNetWebPlaybackSdkManager
-                    .invokeMethodAsync(dotNetMethods.OnPlayerStateChanged, JSON.stringify(state));
-        });
-
         this.Player.addListener('ready', ({ device_id }) => {
             this.DeviceId = device_id;
             console.log(this.LoggingPrefix + 'Ready with the following ID: ' + device_id);

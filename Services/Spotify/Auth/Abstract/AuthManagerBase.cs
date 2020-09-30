@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -9,9 +6,9 @@ using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
 using Microsoft.AspNetCore.Components;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
-using SpotifyService.Services.Spotify.Auth.Models;
+using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
 
-namespace SpotifyService.Services.Spotify.Auth.Abstract
+namespace Caerostris.Services.Spotify.Auth.Abstract
 {
     /// <summary>
     /// Provides token caching and auth workflow initialization functionality for descendants.
@@ -20,15 +17,15 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
     {
         private const string ApiBase = "https://accounts.spotify.com/authorize";
 
-        protected readonly ILocalStorage localStorage;
-        protected readonly NavigationManager navigationManager;
+        protected readonly ILocalStorage LocalStorage;
+        protected readonly NavigationManager NavigationManager;
 
-        protected Task<AuthToken?>? memoryCachedToken;
+        protected Task<AuthToken?>? MemoryCachedToken;
 
         protected AuthManagerBase(ILocalStorage injectedLocalStorage, NavigationManager injectedNavigatorManager)
         {
-            localStorage = injectedLocalStorage;
-            navigationManager = injectedNavigatorManager;
+            LocalStorage = injectedLocalStorage;
+            NavigationManager = injectedNavigatorManager;
         }
 
         public abstract Task StartProcess(string clientId, string redirectUri, Scope scope);
@@ -45,15 +42,15 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
 
             var builder = new StringBuilder();
             builder.Append(ApiBase);
-            builder.Append($"?response_type={type switch { AuthType.ImplicitGrant => "token", AuthType.AuthorizationCode => "code", _ => throw new ArgumentOutOfRangeException() }}");
+            builder.Append($"?response_type={type switch { AuthType.ImplicitGrant => "token", AuthType.AuthorizationCode => "code", _ => throw new ArgumentException($"No such {nameof(AuthType)}.") }}");
             builder.Append($"&client_id={clientId}");
             if (scope != Scope.None)
-                builder.Append($"&scope={Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Util.GetStringAttribute(scope, separator: " ")}");
+                builder.Append($"&scope={scope.GetStringAttribute(separator: " ")}");
             builder.Append($"&redirect_uri={redirectUri}");
             builder.Append($"&state={state.State}");
             builder.Append("&show_dialog=true"); // Spotify won't show the dialog by default even if the request contains new scopes
 
-            navigationManager.NavigateTo(builder.ToString(), forceLoad: true);
+            NavigationManager.NavigateTo(builder.ToString(), forceLoad: true);
         }
 
         /// <summary>
@@ -63,22 +60,22 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
         /// <remarks>Not thread-safe, but Blazor WA scheduling isn't preemptive.</remarks>
         public async Task<string?> GetToken()
         {
-            if (!(memoryCachedToken is null))
+            if (MemoryCachedToken is not null)
             {
-                if (!memoryCachedToken.IsCompleted)
-                    return (await memoryCachedToken)?.AccessToken;
+                if (!MemoryCachedToken.IsCompleted)
+                    return (await MemoryCachedToken)?.AccessToken;
 
-                else if (memoryCachedToken.Result is null)
-                    memoryCachedToken = null;
+                else if (MemoryCachedToken.Result is null)
+                    MemoryCachedToken = null;
 
-                else if (!memoryCachedToken.Result.IsAlmostExpired())
-                    return memoryCachedToken.Result.AccessToken;
+                else if (!MemoryCachedToken.Result.IsAlmostExpired())
+                    return MemoryCachedToken.Result.AccessToken;
 
                 else
-                    memoryCachedToken = null;
+                    MemoryCachedToken = null;
             }
-            memoryCachedToken = localStorage.GetItem<AuthToken?>(nameof(AuthToken)).AsTask();
-            var localStorageCachedToken = await memoryCachedToken;
+            MemoryCachedToken = LocalStorage.GetItem<AuthToken?>(nameof(AuthToken)).AsTask();
+            var localStorageCachedToken = await MemoryCachedToken;
 
             if (localStorageCachedToken is null)
                 return await GetAndCacheNewToken();
@@ -86,20 +83,20 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
             if (!localStorageCachedToken.IsAlmostExpired())
                 return localStorageCachedToken.AccessToken;
 
-            await localStorage.RemoveItem(nameof(AuthToken));
+            await LocalStorage.RemoveItem(nameof(AuthToken));
             return await GetAndCacheNewToken();
         }
 
         private async Task<string?> GetAndCacheNewToken()
         {
-            memoryCachedToken = GetNewToken();
-            return (await memoryCachedToken)?.AccessToken;
+            MemoryCachedToken = GetNewToken();
+            return (await MemoryCachedToken)?.AccessToken;
         }
 
         /// <param name="redirectUri">The same URI that was passed to the <see cref="StartProcess"/> method.</param>
         public async Task<string?> GetTokenOnCallback(string redirectUri)
         {
-            if (!(GetQueryParam("error") is null))
+            if (GetQueryParam("error") is not null)
                 return null;
 
             AuthWorkflow? workflow = await GetWorkflow();
@@ -110,8 +107,8 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
 
             await RemoveWorkflow();
 
-            memoryCachedToken = GetFirstToken(redirectUri);
-            return (await memoryCachedToken)?.AccessToken;
+            MemoryCachedToken = GetFirstToken(redirectUri);
+            return (await MemoryCachedToken)?.AccessToken;
         }
 
         /// <summary>
@@ -120,8 +117,8 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
         public async Task Logout()
         {
             await RemoveWorkflow();
-            await localStorage.RemoveItem(nameof(AuthToken));
-            memoryCachedToken = null;
+            await LocalStorage.RemoveItem(nameof(AuthToken));
+            MemoryCachedToken = null;
         }
 
         /// <remarks>
@@ -137,7 +134,7 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
 
         protected string? GetQueryParam(string paramName)
         {
-            var uriBuilder = new UriBuilder(navigationManager.Uri);
+            var uriBuilder = new UriBuilder(NavigationManager.Uri);
 
             // The Spotify API returns the parameters in the fragment in the implicit grant scheme, but uses the query in the auth code workflow.
             var q = HttpUtility.ParseQueryString(uriBuilder.Fragment.Replace('#', '?'));
@@ -148,18 +145,18 @@ namespace SpotifyService.Services.Spotify.Auth.Abstract
         }
 
         protected async Task<AuthWorkflow?> GetWorkflow() =>
-            await localStorage.GetItem<AuthWorkflow?>(nameof(AuthWorkflow));
+            await LocalStorage.GetItem<AuthWorkflow?>(nameof(AuthWorkflow));
 
         protected async Task SetWorkflow(AuthWorkflow workflow) =>
-            await localStorage.SetItem(nameof(AuthWorkflow), workflow);
+            await LocalStorage.SetItem(nameof(AuthWorkflow), workflow);
 
         protected async Task RemoveWorkflow() =>
-            await localStorage.RemoveItem(nameof(AuthWorkflow));
+            await LocalStorage.RemoveItem(nameof(AuthWorkflow));
 
         protected async Task SetToken(AuthToken token)
         {
-            await localStorage.SetItem(nameof(AuthToken), token);
-            memoryCachedToken = Task.FromResult<AuthToken?>(token);
+            await LocalStorage.SetItem(nameof(AuthToken), token);
+            MemoryCachedToken = Task.FromResult<AuthToken?>(token);
         }
     }
 }

@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Security;
 
 namespace Caerostris.Services.Spotify.Web
 {
@@ -42,7 +43,7 @@ namespace Caerostris.Services.Spotify.Web
             playback?.IsPlaying ?? false;
 
         public static bool IsTrackPlaying(this PlaybackContext? playback, string trackUri) =>
-            playback.IsPlaying() && playback?.Item?.Uri == trackUri;
+            playback.IsPlaying() && (playback?.Item?.Uri?.Equals(trackUri) ?? false);
 
         public static bool GetShuffleState(this PlaybackContext? playback) =>
             playback?.ShuffleState ?? false;
@@ -74,48 +75,39 @@ namespace Caerostris.Services.Spotify.Web
         }
 
         #endregion
-
-
-        #region Track
-
-        public static string HumanReadableAddedAt(this SavedTrack track) => // TODO: del meg a lentieket is 
-            AsHumanReadableAddedAt(track.AddedAt);
-
-        public static string HumanReadableAddedAt(this PlaylistTrack track) => // TODO: del
-            AsHumanReadableAddedAt(track.AddedAt);
-
-        public static string HumanReadableDuration(this FullTrack track) =>// TODO: del
-            AsHumanReadableDuration(track.DurationMs);
-
-        public static string HumanReadableDuration(this SimpleTrack track) =>// TODO: del
-            AsHumanReadableDuration(track.DurationMs);
-
-        public static string OriginalUri(this FullTrack track)
-        {
-            if (track.LinkedFrom is null || string.IsNullOrEmpty(track.LinkedFrom.Uri))
-                return track.Uri;
-            else
-                return track.LinkedFrom.Uri;
-        }
-
-        /// public static string OriginalUri(this SimpleTrack track) isn't possible at this time without a network request
-
-        #endregion
-
+        
 
         #region Album
 
         public static string HumanReadableTotalLength(this CompleteAlbum album) =>
             HumanReadableTotalLength(album.Tracks.Sum(t => t.DurationMs));
-
-        public static string GetName(this SimpleAlbum album, bool link = false, string localUrl = "") =>
-            GetName(album.Name, album.ExternalUrls, album.Id, link, localUrl);
-
+        
         public static string GetName(this FullAlbum album, bool link = false, string localUrl = "") =>
             GetName(album.Name, album.ExternalUrls, album.Id, link, localUrl);
 
         public static string GetName(this FullArtist artist, bool link = false, string localUrl = "") =>
             GetName(artist.Name, artist.ExternalUrls, artist.Id, link, localUrl);
+
+        public static SimpleAlbum AsSimpleAlbum(this FullAlbum album)
+        {
+            return new()
+            {
+                AlbumType = album.AlbumType,
+                Artists = album.Artists,
+                AvailableMarkets = album.AvailableMarkets,
+                ExternalUrls = album.ExternalUrls,
+                Href = album.Href,
+                Id = album.Id,
+                Images = album.Images,
+                Name = album.Name,
+                ReleaseDate = album.ReleaseDate,
+                ReleaseDatePrecision = album.ReleaseDatePrecision,
+                Restrictions = album.Restrictions,
+                TotalTracks = album.TotalTracks,
+                Type = album.Type,
+                Uri = album.Uri
+            };
+        }
 
         #endregion
 
@@ -130,6 +122,25 @@ namespace Caerostris.Services.Spotify.Web
 
         public static string GetName(this FullPlaylist playlist, bool link = false, string localUrl = "") =>
             GetName(playlist.Name, playlist.ExternalUrls, playlist.Id, link, localUrl);
+
+        public static SimplePlaylist AsSimplePlaylist(this FullPlaylist playlist)
+        {
+            return new()
+            {
+                Collaborative = playlist.Collaborative,
+                ExternalUrls = playlist.ExternalUrls,
+                Href = playlist.Href,
+                Id = playlist.Id,
+                Images = playlist.Images,
+                Name = playlist.Name,
+                Owner = playlist.Owner,
+                Public = playlist.Public,
+                SnapshotId = playlist.SnapshotId,
+                Tracks = new() { Href = playlist.Tracks.Href, Total = playlist.Tracks.Total },
+                Type = playlist.Type,
+                Uri = playlist.Uri
+            };
+        }
 
         #endregion
 
@@ -165,13 +176,10 @@ namespace Caerostris.Services.Spotify.Web
         /// <summary>
         /// Creates a formatted string from a collection of <see cref="SimpleArtist"/>s.
         /// </summary>
-        /// <param name="link">Whether html markup should be used to create links to the artists' pages.</param>
-        /// <param name="localUrl">If supplied, the links will point to {localUrl}{<see cref="SimpleArtist.Id"/>}.</param>
-        public static string GetArtists(this IEnumerable<SimpleArtist> artists, bool link = false, string localUrl = "")
+        /// <param name="link">Whether HTML markup should be used to create links to the artists' pages.</param>
+        /// <param name="localUrl">If supplied, the links will point to {<paramref name="localUrl"/>}{<see cref="SimpleArtist.Id"/>}.</param>
+        public static string GetArtists(this IEnumerable<SimpleArtist> artists, bool link = false, string localUrl = "") // TODO: <artistslist> helyette
         {
-            if (artists is null)
-                return string.Empty;
-
             const string delimiter = ", ";
             return string.Join(
                 delimiter,
@@ -225,7 +233,7 @@ namespace Caerostris.Services.Spotify.Web
 
         private static string GetName(string name, Dictionary<string, string> externalUrls, string id, bool link, string? localUrl) // TODO: del, use OpenContextLink
         {
-            return (link && !(externalUrls is null))
+            return link
                 ? $"<a href=\"{(string.IsNullOrEmpty(localUrl) ? externalUrls["spotify"] : $"{localUrl}{id}")}\">{name}</a>"
                 : $"{name}";
         }

@@ -17,7 +17,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         private readonly SpotifyWebAPI api;
         private readonly IndexedDbCache<SavedTrack> storageCache;
 
-        private const string storeName = nameof(SavedTrack);
+        private const string StoreName = nameof(SavedTrack);
 
         public SavedTrackManager(SpotifyWebAPI spotifyWebApi, IndexedDbCache<SavedTrack> indexedDbCache)
         {
@@ -32,29 +32,29 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
             await RealAndIndexedDbChachedSavedTrackCountsMatch();
 
         protected override async Task ClearStorageCache() =>
-            await storageCache.Clear(storeName);
+            await storageCache.Clear(StoreName);
 
         protected override async Task<IEnumerable<SavedTrack>> LoadStorageCache(Action<int, int> progressCallback, string market = "") =>
-            await storageCache.Load(storeName, progressCallback);
+            await storageCache.Load(StoreName, progressCallback);
 
         protected override async Task<IEnumerable<SavedTrack>> LoadRemoteResource(Action<int, int> progressCallback, string market = "")
         {
-            return await Utility.DownloadPagedResources(
+            return await Utility.SynchronizedDownloadPagedResources(
                 (o, p) => api.GetSavedTracksAsync(offset: o, limit: p, market: market),
                 progressCallback,
-                async (tracks) => { await storageCache.Save(storeName, tracks); });
+                (tracks) => { _ = storageCache.Save(StoreName, tracks); });
         }
 
         private async Task<int> GetRealSavedTrackCount(string market = "") =>
             (await api.GetSavedTracksAsync(10, 0, market)).Total;
 
         private async Task<int> GetIndexedDbTrackCount() =>
-            await storageCache.GetCount(storeName);
+            await storageCache.GetCount(StoreName);
 
         private async Task<bool> RealAndMemoryChachedSavedTrackCountsMatch(string market = "")
         {
             var real = await GetRealSavedTrackCount(market);
-            var cached = lastRetrieval?.Result?.Count() ?? 0;
+            var cached = LastRetrieval?.Result.Count() ?? 0;
             return (real == cached);
         }
 

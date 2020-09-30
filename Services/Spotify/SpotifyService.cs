@@ -1,51 +1,53 @@
-﻿using Caerostris.Services.Spotify.Auth;
-using Caerostris.Services.Spotify.Player;
+﻿using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
 using System;
 using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
-using SpotifyService.Services.Spotify.Auth.Abstract;
+using Caerostris.Services.Spotify.Auth.Abstract;
+using Caerostris.Services.Spotify.Web.CachedDataProviders;
 
 namespace Caerostris.Services.Spotify
 {
     /// <remarks>
-    /// Choose the 'singleton' instantiation mode when using Dependency Injection. The internal state of the class was devised with a per-session instantiation policy in mind.
+    /// Choose the 'singleton' instantiation mode when using Dependency Injection.
     /// </remarks>
     public sealed partial class SpotifyService : IDisposable
     {
         private readonly SpotifyWebAPI api;
         private readonly WebApiManager dispatcher;
 
-        private (AuthManagerBase, WebPlaybackSDKManager) injected;
-
-#pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods.
-        public SpotifyService(SpotifyWebAPI spotifyWebApi, AuthManagerBase injectedAuthManager, WebApiManager injectedWebApiManager, WebPlaybackSDKManager injectedPlayer)
-#pragma warning restore CS8618
+        #pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods. TODO: szétszedni
+        public SpotifyService(
+            SpotifyWebAPI spotifyWebApi, 
+            AuthManagerBase authManagerBase, 
+            WebApiManager webApiManager, 
+            WebPlaybackSdkManager webPlaybackSdkManager, 
+            IndexedDbCache<string> indexedDbCache)
+        #pragma warning restore CS8618
         {
             api = spotifyWebApi;
+            dispatcher = webApiManager;
 
-            dispatcher = injectedWebApiManager;
-
-            injected = (injectedAuthManager, injectedPlayer);
+            authManager = authManagerBase;
+            player = webPlaybackSdkManager;
+            listenLaterStore = indexedDbCache;
         }
 
         public async Task Initialize(string deviceName, string clientId, Scope permissionScopes)
         {
-            var (injectedAuthManager, injectedPlayer) = injected;
-
-            InitializePlayer(injectedPlayer, deviceName);
-            await InitializeAuth(injectedAuthManager, clientId, permissionScopes);
+            InitializePlayer(deviceName);
+            await InitializeAuth(clientId, permissionScopes);
             InitializePlayback();
         }
 
         private async Task OnError(string message)
         {
-            Log($"Temporary error handler: Received error: {message}");
+            Log($"Error: {message}"); // TODO: raise error
             await Task.CompletedTask;
         }
 
-        private void Log(string message) =>
+        private static void Log(string message) =>
             Console.WriteLine($"SpotifyService: {message}");
 
         public void Dispose()

@@ -17,11 +17,11 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         private readonly IndexedDbCache<AudioFeatures> storageCache;
         private readonly IndexedDbCache<string> trackIdCache;
 
-        private const string storeName = nameof(AudioFeatures);
-        private const string trackIdsStoreName = nameof(AudioFeaturesManager);
+        private const string StoreName = nameof(AudioFeatures);
+        private const string TrackIdsStoreName = nameof(AudioFeaturesManager);
 
         /// <summary>
-        /// Once set to a non-empty <see cref="IEnumerable{}"/>, the next <see cref="CachedDataProviderBase{AudioFeatures}.GetData(Action{int, int}, string)"/> call will download the <see cref="AudioFeatures"/>.
+        /// Once set to a non-empty <see cref="IEnumerable{T}"/>, the next <see cref="CachedDataProviderBase{AudioFeatures}.GetData(Action{int, int}, string)"/> call will download the <see cref="AudioFeatures"/>.
         /// </summary>
         public IEnumerable<string> TrackIds { private get; set; } = new List<string>();
 
@@ -39,14 +39,14 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
             await SavedAndSetTrackIdsMatch();
 
         protected override async Task ClearStorageCache() =>
-            await storageCache.Clear(storeName);
+            await storageCache.Clear(StoreName);
 
         protected override async Task<IEnumerable<AudioFeatures>> LoadStorageCache(Action<int, int> progressCallback, string market = "") =>
-            await storageCache.Load(storeName, progressCallback);
+            await storageCache.Load(StoreName, progressCallback);
 
         protected override async Task<IEnumerable<AudioFeatures>> LoadRemoteResource(Action<int, int> progressCallback, string market = "")
         {
-            await trackIdCache.Save(trackIdsStoreName, new List<string>(TrackIds));
+            await trackIdCache.Save(TrackIdsStoreName, new List<string>(TrackIds));
 
             var result = new List<AudioFeatures>();
 
@@ -60,7 +60,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
                 progressCallback(offset, TrackIds.Count());
 
                 result.AddRange(downloaded);
-                await storageCache.Save(storeName, downloaded);
+                await storageCache.Save(StoreName, downloaded);
 
                 offset += pageSize;
 
@@ -72,7 +72,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
 
         private async Task<bool> SavedAndSetTrackIdsMatch()
         {
-            var cachedTrackIds = await trackIdCache.Load(trackIdsStoreName, null);
+            var cachedTrackIds = await trackIdCache.Load(TrackIdsStoreName, null);
 
             /// On first load. Theoretically, <see cref="TrackIds"/> should be loaded when the <see cref="AudioFeaturesManager"/> is constructed, but there it could not be awaited, so we couldn't guarantee a coherent state when checking cache validity.
             if (!TrackIds.Any() && cachedTrackIds.Any())

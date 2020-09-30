@@ -51,14 +51,14 @@ namespace Caerostris.Services.Spotify.Web
         {
             if (contextUri is null && trackUri is null)
                 return new ErrorResponse();
-            else if (contextUri is null && !(trackUri is null))
+            else if (contextUri is null && trackUri is not null)
                 return await api.ResumePlaybackAsync(deviceId: "", contextUri: "", (new [] { trackUri }).ToList(), offset: "");
             else
                 return await api.ResumePlaybackAsync(deviceId: "", contextUri: contextUri, null, offset: trackUri ?? "");
         }
 
-        public async Task<ErrorResponse?> SetPlayback(IEnumerable<string> Uris) =>
-            await api.ResumePlaybackAsync(deviceId: "", contextUri: "", Uris.ToList(), offset: "");
+        public async Task<ErrorResponse?> SetPlayback(IEnumerable<string> uris) =>
+            await api.ResumePlaybackAsync(deviceId: "", contextUri: "", uris.ToList(), offset: "");
 
         public async Task<ErrorResponse?> PausePlayback() =>
             await api.PausePlaybackAsync();
@@ -96,12 +96,12 @@ namespace Caerostris.Services.Spotify.Web
 
             var fullArtist = api.GetArtistAsync(id);
             var relatedArtists = api.GetRelatedArtistsAsync(id);
-            var artistAlbums = Utility.DownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(id, offset: o, limit: p, market: market));
+            var artistAlbums = Utility.SynchronizedDownloadPagedResources((o, p) => api.GetArtistsAlbumsAsync(id, offset: o, limit: p, market: market));
             var artistTopTracks = api.GetArtistsTopTracksAsync(id, country: market);
 
             await Task.WhenAll(fullArtist, relatedArtists, artistAlbums, artistTopTracks);
 
-            return new ArtistProfile
+            return new ()
             {
                 Artist = fullArtist.Result,
                 TopTracks = artistTopTracks.Result.Tracks,
@@ -115,12 +115,12 @@ namespace Caerostris.Services.Spotify.Web
             var market = await GetMarket();
 
             var fullAlbum = api.GetAlbumAsync(id, market: market);
-            var albumTracks = Utility.DownloadPagedResources(
+            var albumTracks = Utility.SynchronizedDownloadPagedResources(
                 (o, p) => api.GetAlbumTracksAsync(id: id, offset: o, limit: p, market: market));
 
             await Task.WhenAll(fullAlbum, albumTracks);
 
-            return new CompleteAlbum { Album = fullAlbum.Result, Tracks = albumTracks.Result };
+            return new () { Album = fullAlbum.Result, Tracks = albumTracks.Result };
         }
 
         public async Task<CompletePlaylist> GetPlaylist(string id)
@@ -128,23 +128,23 @@ namespace Caerostris.Services.Spotify.Web
             var market = await GetMarket();
 
             var fullPlaylist = api.GetPlaylistAsync(id, market: market);
-            var playlistTracks = Utility.DownloadPagedResources(
+            var playlistTracks = Utility.SynchronizedDownloadPagedResources(
                 (o, p) => api.GetPlaylistTracksAsync(playlistId: id, offset: o, limit: p, market: market));
 
             await Task.WhenAll(fullPlaylist, playlistTracks);
 
-            return new CompletePlaylist { Playlist = fullPlaylist.Result, Tracks = playlistTracks.Result };
+            return new () { Playlist = fullPlaylist.Result, Tracks = playlistTracks.Result };
         }
 
         public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists(string id) =>
-            await Utility.DownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: id, offset: o, limit: p));
+            await Utility.SynchronizedDownloadPagedResources((o, p) => api.GetUserPlaylistsAsync(userId: id, offset: o, limit: p));
 
         public async Task<bool> GetTrackSavedStatus(string id) =>
-            (await api.CheckSavedTracksAsync(new[] { id }.ToList())).List.FirstOrDefault();
+            (await api.CheckSavedTracksAsync(new[] { id }.ToList())).List.First();
 
         public async Task<IDictionary<string, bool>> GetTrackSavedStatus(IEnumerable<string> ids) =>
             new Dictionary<string, bool>(
-                (await Utility.PaginateAndDownloadResources<string, bool>(
+                (await Utility.SynchronizedPaginateAndDownloadResources<string, bool>(
                     ids, async (ids) => (await api.CheckSavedTracksAsync(ids.ToList())).List, 50))
                     .Zip(ids, (isSaved, id) => new KeyValuePair<string, bool>(id, isSaved)));
 
@@ -169,12 +169,32 @@ namespace Caerostris.Services.Spotify.Web
         public async Task<ErrorResponse> AddPlaylistTracks(string playlistId, IEnumerable<string> trackUris) =>
             await api.AddPlaylistTracksAsync(playlistId, trackUris.ToList(), null);
 
+        public async Task<IEnumerable<FullTrack>> GetTracks(IEnumerable<string> trackUris) =>
+            (await api.GetSeveralTracksAsync(IdsFromUris(trackUris), await GetMarket())).Tracks;
+
+        public async Task<IEnumerable<FullAlbum>> GetAlbums(IEnumerable<string> albumUris) =>
+            (await api.GetSeveralAlbumsAsync(IdsFromUris(albumUris), await GetMarket())).Albums; // TODO: error handling?
+
+        public async Task<IEnumerable<FullArtist>> GetArtists(IEnumerable<string> artistUris) =>
+            (await api.GetSeveralArtistsAsync(IdsFromUris(artistUris))).Artists;
+
+        public async Task<IEnumerable<FullPlaylist>> GetPlaylists(IEnumerable<string> playlistUris) =>
+            await Utility.SynchronizedDownloadBatched(
+                IdsFromUris(playlistUris).Select<string, Func<Task<IEnumerable<FullPlaylist>>>>( 
+                    id => async () => new[] { await api.GetPlaylistAsync(id, market: await GetMarket()) }));
+
+
+
         #region Comfort
 
-        private async Task<string> GetMarket()
-        {
-            return (await GetPrivateProfile()).Country;
-        }
+        private async Task<string> GetMarket() =>
+            (await GetPrivateProfile()).Country;
+
+        private List<string> IdsFromUris(IEnumerable<string> uris) =>
+            uris.Select(IdFromUri).ToList();
+
+        private string IdFromUri(string uri) =>
+            uri.Split(':').Last();
 
         #endregion
     }

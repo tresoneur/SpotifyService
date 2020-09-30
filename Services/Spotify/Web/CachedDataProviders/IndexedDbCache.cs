@@ -20,7 +20,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
                 await indexedDb.AddRecord(new StoreRecord<TData> { Storename = storeName, Data = entity });
         }
 
-        public async Task<IEnumerable<TData>> Load(string storeName, Action<int, int>? progressCallback)
+        public async Task<IEnumerable<TData>> Load(string storeName, Action<int, int>? progressCallback = null)
         {
             var records = new List<TData>();
             const int count = 10;

@@ -53,12 +53,12 @@ namespace Caerostris.Services.Spotify
 
             string? lastKnownContextUri = current?.Context?.Uri;
 
-            if (lastKnownContextUri != next?.Context?.Uri
+            if (lastKnownContextUri != next.Context?.Uri
                     || (!string.IsNullOrEmpty(lastKnownContextUri)
-                        && !string.IsNullOrEmpty(next?.Context?.Uri)
+                        && !string.IsNullOrEmpty(next.Context?.Uri)
                         && !lastKnownContextUri.Equals(next.Context.Uri)))
             {
-                ContextChanged?.Invoke(next!);
+                ContextChanged?.Invoke(next);
             }
         }
     }

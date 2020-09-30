@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SpotifyService.Services.Spotify.Auth.Models
+﻿namespace Caerostris.Services.Spotify.Auth.Models
 {
     public enum AuthType
     {

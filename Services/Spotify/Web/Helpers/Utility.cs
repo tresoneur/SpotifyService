@@ -9,57 +9,57 @@ namespace Caerostris.Services.Spotify.Web.Helpers
 {
     internal static class Utility
     {
-        internal const int RateLimitDelayMs = 500;
-        internal const int DefaultBatchSize = 20;
+        internal const int RateLimitDelayMs = 250;
+        internal const int DefaultBatchSize = 10;
+        internal const int DefaultPageSize = 50;
 
-        private static readonly SemaphoreSlim rateLimitLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim RateLimitLock = new SemaphoreSlim(1, 1);
 
-        internal static async Task<IEnumerable<T>> DownloadPagedResources<T>(
-            Func<int, int, Task<Paging<T>>> aquire,
+        internal static async Task<IEnumerable<TResult>> SynchronizedDownloadPagedResources<TResult>(
+            Func<int, int, Task<Paging<TResult>>> aquire,
             Action<int, int>? notify = null,
-            Func<IEnumerable<T>, Task>? submit = null,
-            int pageSize = 50)
+            Action<IEnumerable<TResult>>? submit = null,
+            int pageSize = DefaultPageSize)
         {
             return await ExecuteRateLimited(async () =>
             {
-                var result = new List<T>();
+                var results = new List<TResult>();
 
-                int offset = 0;
-                while (true)
+                void addToResults(IEnumerable<TResult> newResults, int total)
                 {
-                    var page = await aquire(offset, pageSize);
+                    results.AddRange(newResults);
 
-                    if (!(page.Items is null) && page.Items.Count > 0)
-                    {
-                        result.AddRange(page.Items);
-
-                        notify?.Invoke(offset + page.Items.Count, page.Total);
-
-                        if (!(submit is null))
-                            await submit.Invoke(page.Items);
-                    }
-
-                    if (!page.HasNextPage()) // TODO: parallelize by batching
-                        break;
-
-                    offset += pageSize;
-
-                    await Task.Delay(RateLimitDelayMs);
+                    notify?.Invoke(results.Count, total);
+                    submit?.Invoke(newResults);
                 }
 
-                return result;
+                // Aquire total count.
+                var firstPage = await aquire(0, pageSize);
+                addToResults(firstPage.Items, firstPage.Total);
+
+                // The rest can be downloaded in batches.
+                var pages = new List<Func<Task<IEnumerable<TResult>>>>();
+                for (int offset = pageSize; offset < firstPage.Total; offset += pageSize)
+                {
+                    var o = offset;
+                    pages.Add(async () => (await aquire(o, pageSize)).Items);
+                }
+
+                await DownloadBatched(
+                    pages,
+                    (newResults) => addToResults(newResults, firstPage.Total));
+
+                return results;
             });
         }
 
-        internal static async Task<IEnumerable<TResult>> PaginateAndDownloadResources<TKey, TResult>(
+        internal static async Task<IEnumerable<TResult>> SynchronizedPaginateAndDownloadResources<TKey, TResult>(
             IEnumerable<TKey> keys,
             Func<IEnumerable<TKey>, Task<IEnumerable<TResult>>> aquire,
-            int pageSize)
+            int pageSize = DefaultPageSize)
         {
             return await ExecuteRateLimited(async () =>
             {
-                Console.WriteLine("PaginateAndDownloadResources");
-
                 var pages = new List<IEnumerable<TKey>>();
 
                 int keyCount = 0;
@@ -70,31 +70,36 @@ namespace Caerostris.Services.Spotify.Web.Helpers
                 }
 
                 var pageDownloads = pages
-                    .Select<IEnumerable<TKey>, Func<Task<IEnumerable<TResult>>>>(p =>
-                        {
-                            return () => aquire(p);
-                        })
+                    .Select<IEnumerable<TKey>, Func<Task<IEnumerable<TResult>>>>(p => () => aquire(p))
                     .ToList();
 
-                return await BatchedDownload(pageDownloads);
+                return await DownloadBatched(pageDownloads);
             });
+        }
+
+        internal static async Task<IEnumerable<TResult>> SynchronizedDownloadBatched<TResult>(
+            IEnumerable<Func<Task<IEnumerable<TResult>>>> pageDownloads,
+            Action<IEnumerable<TResult>>? interBatchCallback = null)
+        {
+            return await ExecuteRateLimited(() => DownloadBatched(pageDownloads, interBatchCallback));
         }
 
         private static async Task<TResult> ExecuteRateLimited<TResult>(Func<Task<TResult>> task)
         {
-            await rateLimitLock.WaitAsync();
+            await RateLimitLock.WaitAsync();
             try
             {
                 return await task();
             }
             finally
             {
-                rateLimitLock.Release();
+                RateLimitLock.Release();
             }
         }
 
-        private static async Task<IEnumerable<TResult>> BatchedDownload<TResult>(
-            IEnumerable<Func<Task<IEnumerable<TResult>>>> pageDownloads)
+        private static async Task<IEnumerable<TResult>> DownloadBatched<TResult>(
+            IEnumerable<Func<Task<IEnumerable<TResult>>>> pageDownloads,
+            Action<IEnumerable<TResult>>? interBatchCallback = null)
         {
             var result = new List<TResult>();
 
@@ -107,7 +112,11 @@ namespace Caerostris.Services.Spotify.Web.Helpers
                 await Task.WhenAll(batchResult);
                 pageCount += DefaultBatchSize;
 
-                batchResult.ForEach(p => result.AddRange(p.Result));
+                var newResults = batchResult.SelectMany(p => p.Result);
+
+                result.AddRange(newResults);
+
+                interBatchCallback?.Invoke(newResults);
 
                 await Task.Delay(RateLimitDelayMs);
             }

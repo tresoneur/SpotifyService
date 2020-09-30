@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SpotifyService.Services.Spotify.Configuration
+﻿namespace Caerostris.Services.Spotify.Configuration
 {
     public class SpotifyServiceConfiguration
     {

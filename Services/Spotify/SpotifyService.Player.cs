@@ -1,5 +1,4 @@
 ﻿using Caerostris.Services.Spotify.Player;
-using Caerostris.Services.Spotify.Player.Models;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
 using System;
 using System.Threading.Tasks;
@@ -8,27 +7,20 @@ namespace Caerostris.Services.Spotify
 {
     public sealed partial class SpotifyService
     {
-        private WebPlaybackSDKManager player;
-
         private string localDeviceId = "";
         private bool isPlaybackLocal = false;
 
         private string deviceName;
 
-        private void InitializePlayer(WebPlaybackSDKManager injectedPlayer, string deviceName)
+        private readonly WebPlaybackSdkManager player;
+
+        private void InitializePlayer(string deviceName)
         {
-            player = injectedPlayer;
             this.deviceName = deviceName;
 
             PlaybackChanged += OnDevicePotentiallyChanged;
-
             AuthStateChanged += OnReInitializationPotenitallyNeeded;
         }
-
-        /// <remarks>
-        /// Currently unused, updating the WebAPI context based on the WebPlaybackState turned out to be the wrong approach.
-        /// </remarks>
-        private void OnPlaybackChanged(WebPlaybackState? state) { }
 
         private async Task OnLocalPlayerReady(string deviceId)
         {
@@ -40,7 +32,7 @@ namespace Caerostris.Services.Spotify
 
         private async Task OnDevicePotentiallyChanged(PlaybackContext playback)
         {
-            if (!(playback?.Device?.Id is null))
+            if (playback.Device?.Id is not null)
             {
                 bool playbackContextIndicatesLocalPlayback =
                     playback.Device.Id.Equals(localDeviceId, StringComparison.InvariantCulture);
@@ -67,7 +59,6 @@ namespace Caerostris.Services.Spotify
                 await player.Initialize(
                     GetAuthToken,
                     OnError,
-                    OnPlaybackChanged,
                     OnLocalPlayerReady,
                     deviceName);
             }

@@ -11,22 +11,22 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
     /// </summary>
     public abstract class CachedDataProviderBase<TData> : ICachedDataProvider<TData>
     {
-        protected Task<IEnumerable<TData>>? lastRetrieval; // TODO: weak reference
+        protected Task<IEnumerable<TData>>? LastRetrieval; // TODO: weak reference
 
         /// <remarks>Not thread-safe, but Blazor WA scheduling isn't preemptive.</remarks>
         public async Task<IEnumerable<TData>> GetData(Action<int, int> progressCallback, string market = "")
         {
-            /// Serving from memory cache.
-            if (!(lastRetrieval is null))
+            // Serving from memory cache.
+            if (LastRetrieval is not null)
             {
-                if (!lastRetrieval.IsCompleted)
-                    return await lastRetrieval;
+                if (!LastRetrieval.IsCompleted)
+                    return await LastRetrieval;
 
                 else if (await IsMemoryCacheValid())
-                    return lastRetrieval.Result;
+                    return LastRetrieval.Result;
             }
 
-            /// Serving from storage cache.
+            // Serving from storage cache.
             if (await IsStorageCacheValid())
             {
                 var cachedData = await SetAsLastRetrievalAndAwait(() => LoadStorageCache(progressCallback, market));
@@ -38,7 +38,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
                 await ClearStorageCache();
             }
 
-            /// As a last resort, fetching remote resource.
+            // As a last resort, fetching remote resource.
             var remoteData = await SetAsLastRetrievalAndAwait(() => LoadRemoteResource(progressCallback));
             return remoteData;
         }
@@ -70,8 +70,8 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
 
         private async Task<IEnumerable<TData>> SetAsLastRetrievalAndAwait(Func<Task<IEnumerable<TData>>> func)
         {
-            lastRetrieval = func();
-            return await lastRetrieval;
+            LastRetrieval = func();
+            return await LastRetrieval;
         }
     }
 }

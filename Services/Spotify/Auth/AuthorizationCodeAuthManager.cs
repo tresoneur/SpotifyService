@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Blazor.Extensions.Storage.Interfaces;
@@ -11,12 +9,11 @@ using Newtonsoft.Json;
 using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using SpotifyAuthServer.Controllers.Model;
 using SpotifyAuthServer.Model;
-using SpotifyService.Services.Spotify.Auth.Abstract;
-using SpotifyService.Services.Spotify.Auth.Models;
-using SpotifyService.Services.Spotify.Configuration;
+using Caerostris.Services.Spotify.Auth.Abstract;
+using Caerostris.Services.Spotify.Configuration;
 using AuthToken = Caerostris.Services.Spotify.Auth.Models.AuthToken;
 
-namespace SpotifyService.Services.Spotify.Auth
+namespace Caerostris.Services.Spotify.Auth
 {
     /// <summary>
     /// This method of acquiring authentication involves the client secret, so it requires a supporting server. However, the authentication does not need to be renewed.
@@ -55,7 +52,7 @@ namespace SpotifyService.Services.Spotify.Auth
             var token = new AuthToken(result.Token.ExpiresInSec, result.Token.AccessToken);
             await SetToken(token);
             
-            navigationManager.NavigateTo("/", forceLoad: false);
+            NavigationManager.NavigateTo("/", forceLoad: false);
 
             return token;
         }
