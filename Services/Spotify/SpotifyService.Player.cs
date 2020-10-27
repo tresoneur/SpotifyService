@@ -1,6 +1,7 @@
 ﻿using Caerostris.Services.Spotify.Player;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+using SpotifyAPI.Web;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify
@@ -13,12 +14,17 @@ namespace Caerostris.Services.Spotify
         private string deviceName;
 
         private readonly WebPlaybackSdkManager player;
+        private readonly MediaSessionManager mediaSession;
 
-        private void InitializePlayer(string deviceName)
+
+        private async Task InitializePlayer(string deviceName)
         {
             this.deviceName = deviceName;
 
+            await mediaSession.Initialize(Play, Pause, Previous, Next);
+
             PlaybackChanged += OnDevicePotentiallyChanged;
+            PlaybackChanged += mediaSession.SetMetadata;
             AuthStateChanged += OnReInitializationPotenitallyNeeded;
         }
 
@@ -30,7 +36,7 @@ namespace Caerostris.Services.Spotify
             Log("Playback automatically transferred to local device.");
         }
 
-        private async Task OnDevicePotentiallyChanged(PlaybackContext playback)
+        private async Task OnDevicePotentiallyChanged(CurrentlyPlayingContext playback)
         {
             if (playback.Device?.Id is not null)
             {
@@ -58,7 +64,7 @@ namespace Caerostris.Services.Spotify
             {
                 await player.Initialize(
                     GetAuthToken,
-                    OnError,
+                    OnNoncriticalError,
                     OnLocalPlayerReady,
                     deviceName);
             }

@@ -1,8 +1,9 @@
-﻿using Caerostris.Services.Spotify.Auth;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
+﻿using SpotifyAPI.Web;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Auth.Abstract;
+using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify
 {
@@ -10,7 +11,7 @@ namespace Caerostris.Services.Spotify
     {
         private string clientId;
 
-        private Scope permissions;
+        private List<string> permissions;
 
         private readonly AuthManagerBase authManager;
 
@@ -19,7 +20,7 @@ namespace Caerostris.Services.Spotify
         /// Also fires when a valid token is found in cache on startup. The SpotifyService instance won't be able to fetch any user-specific data before this happens, so it is best if any component in need of e.g. the username subscribes to this event.
         /// </summary>
         public event Action<bool>? AuthStateChanged;
-        private System.Threading.Timer authPollingTimer;
+        private Timer authPollingTimer;
         private bool authGrantedWhenLastChecked = false;
 
         /// <summary>
@@ -27,30 +28,28 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         public readonly string RelativeCallbackUrl = "/callback";
 
-        private async Task InitializeAuth(string clientId, Scope permissionScopes)
+        private async Task InitializeAuth(string clientId, List<string> permissionScopes)
         {
             this.clientId = clientId;
             permissions = permissionScopes;
 
-            api.TokenType = "Bearer";
             await CheckAuth();
 
-            authPollingTimer = new System.Threading.Timer(
+            authPollingTimer = new(
                 callback: async _ => { await CheckAuth(); },
                 state: null,
                 dueTime: 1000,
-                period: 1000
-            );
+                period: 1000);
         }
 
         /// <summary>
-        /// Gets an access token through the OAuth2 Implicit Grant process. Should be used before the use of any other API functionality is attempted.
-        /// The token gets saved to LocalStorage.
+        /// Gets an access token through the OAuth2 process. Should be used before the use of any other API functionality is attempted.
+        /// The token will be saved to LocalStorage.
         /// Will reload the page (!)
         /// </summary>
         /// <remarks>
-        /// The callback Uri has to be added to the whitelist on the Spotify Developer Dashboard.
-        /// Any permissions needed will have to be passed to <see cref="ImplicitGrantAuthManager.StartProcess(string, string, Scope)"/>.
+        /// The callback URI has to be added to the whitelist on the Spotify Developer Dashboard.
+        /// Any permissions needed will have to be passed to <see cref="AuthManagerBase.StartProcess(string, string, Scope)"/>.
         /// </remarks>
         public async Task StartAuth(string callbackUri)
         {
@@ -74,7 +73,7 @@ namespace Caerostris.Services.Spotify
             if (token is null)
                 return false;
 
-            api.AccessToken = token;
+            dispatcher.Authorize(token);
 
             // Fire event(s)
             await CheckAuth();
@@ -90,14 +89,18 @@ namespace Caerostris.Services.Spotify
             return ((await GetAuthToken()) is not null);
         }
 
-        public async Task Logout() =>
+        public async Task Logout()
+        {
+            await Cleanup();
             await authManager.Logout();
+        }
 
         private async Task CheckAuth()
         {
             string? token = await GetAuthToken();
+
             if (token is not null)
-                api.AccessToken = token;
+                dispatcher.Authorize(token);
 
             bool authGranted = (await IsAuthGranted());
             if (authGranted != authGrantedWhenLastChecked)

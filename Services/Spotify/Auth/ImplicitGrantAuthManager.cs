@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Auth.Abstract;
 using Caerostris.Services.Spotify.Auth.Models;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
+using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify.Auth
 {
@@ -16,8 +16,8 @@ namespace Caerostris.Services.Spotify.Auth
          : base(injectedLocalStorage, injectedNavigatorManager) 
         { }
 
-        public override async Task StartProcess(string clientId, string redirectUri, Scope scope) =>
-            await StartProcess(AuthType.ImplicitGrant, clientId, redirectUri, scope);
+        public override async Task StartProcess(string clientId, string redirectUri, List<string> scopes) =>
+            await StartProcess(AuthType.ImplicitGrant, clientId, redirectUri, scopes);
 
         /// <summary>
         /// Stores the received token in LocalStorage.

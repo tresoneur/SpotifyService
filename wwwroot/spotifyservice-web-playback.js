@@ -32,7 +32,7 @@ class WebPlaybackSdkWrapper {
                 dotNetWebPlaybackSdkManager
                     .invokeMethodAsync(dotNetMethods.GetAuthToken)
                     .then(token => {
-                        if (token == null || token === "")
+                        if (token === null || token === "")
                             this.OnError({ message: "Empty or null token passed to Spotify Web Playback SDK wrapper" });
                         else
                             callback(token);
@@ -72,7 +72,84 @@ class WebPlaybackSdkWrapper {
     }
 }
 
-window.SpotifyService = new Object();
-window.SpotifyService.WebPlaybackSDKWrapper = new WebPlaybackSdkWrapper();
+// Basic MediaSession API wrapper.
+class MediaSessionWrapper {
+
+    constructor() {
+        this.MockAudio = null;
+        this.LastKnownMetadata = null;
+    }
+
+    Initialize = (dotNetMediaSessionManager) => {
+        if ('mediaSession' in navigator) {
+
+            this.MockAudio = document.getElementById("mediasession-mock-audio");
+
+            const eventHandlerDictionary =
+            {
+                'play': 'OnPlay',
+                'pause': 'OnPause',
+                'previoustrack': 'OnPrevious',
+                'nexttrack': 'OnNext',
+            };
+    
+            for (const fn in eventHandlerDictionary)
+                navigator.mediaSession.setActionHandler(fn,
+                    () => {
+                        if (fn === 'play')
+                            this.Play();
+                        else if (fn === 'pause')
+                            this.Pause();
+
+                        dotNetMediaSessionManager.invokeMethodAsync(eventHandlerDictionary[fn]);
+                    });
+    
+            navigator.mediaSession.playbackState = "none";
+        }
+    }
+
+    // Expects a `bool`, three `string?`s and a JSON(`List<Caerostris.Services.Spotify.Web.Models.Image>?`)
+    SetMetadata = (playing, title, artist, album, images) => {
+        if ('mediaSession' in navigator) {
+            if (playing)
+                this.Play();
+            else
+                this.Pause();
+
+            this.SetAndSaveMetadata(new MediaMetadata({
+                title: title,
+                artist: artist,
+                album: album,
+                artwork: (images || []).map(img => ({
+                    src: img.url,
+                    sizes: `${img.width}x${img.height}`
+                }))
+            }));
+        }
+    }
+
+    SetAndSaveMetadata = (metadata) => {
+        navigator.mediaSession.metadata = metadata;
+        this.LastKnownMetadata = metadata;
+    }
+
+    Play  = () => { this.PlayPause(true);  }
+
+    Pause = () => { this.PlayPause(false); }
+
+    PlayPause = (play) => {
+        if (play)
+            this.MockAudio.play();
+        else
+            this.MockAudio.pause();
+
+        this.SetAndSaveMetadata(this.LastKnownMetadata); 
+    }
+}
+
+window.SpotifyService = {
+    WebPlaybackSDKWrapper: new WebPlaybackSdkWrapper(),
+    MediaSessionWrapper: new MediaSessionWrapper()
+}
 
 window.onSpotifyWebPlaybackSDKReady = () => { /* Pointless requirement of the SDK */ }

@@ -6,13 +6,13 @@ using Caerostris.Services.Spotify.Player;
 using Caerostris.Services.Spotify.Web;
 using Caerostris.Services.Spotify.Web.CachedDataProviders;
 using Microsoft.Extensions.DependencyInjection;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+using SpotifyAPI.Web;
 using Caerostris.Services.Spotify.IndexedDB;
 using System;
 using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Web.ViewModels;
+using Caerostris.Services.Spotify.Services.Spotify.Web.Api;
+using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify
 {
@@ -30,7 +30,7 @@ namespace Caerostris.Services.Spotify
             services.AddIndexedDB(dbStore =>
             {
                 dbStore.DbName = nameof(SpotifyService);
-                dbStore.Version = 3;
+                dbStore.Version = 4;
 
                 dbStore.Stores.Add(new StoreSchema
                 {
@@ -40,7 +40,7 @@ namespace Caerostris.Services.Spotify
 
                 dbStore.Stores.Add(new StoreSchema
                 {
-                    Name = nameof(AudioFeatures),
+                    Name = nameof(TrackAudioFeatures),
                     PrimaryKey = new IndexSpec { Auto = true }
                 });
 
@@ -59,12 +59,11 @@ namespace Caerostris.Services.Spotify
 
             // "Blazor WebAssembly apps don't currently have a concept of DI scopes. Scoped-registered services behave like Singleton services." <see ref="https://docs.microsoft.com/en-us/aspnet/core/blazor/dependency-injection?view=aspnetcore-3.1"/>
 
-            // Injected SpotifyService dependencies
             services.AddScoped<SpotifyServiceConfiguration>(_ => new () { AuthServerApiBase = authServerApiBase });
-            services.AddScoped<SpotifyWebAPI>();
+            services.AddScoped<Api>();
             services.AddScoped<IndexedDbCache<SavedTrack>>();
             services.AddScoped<SavedTrackManager>();
-            services.AddScoped<IndexedDbCache<AudioFeatures>>();
+            services.AddScoped<IndexedDbCache<TrackAudioFeatures>>();
             services.AddScoped<IndexedDbCache<string>>();
             services.AddScoped<AudioFeaturesManager>();
 
@@ -75,6 +74,7 @@ namespace Caerostris.Services.Spotify
 
             services.AddScoped<WebApiManager>();
             services.AddScoped<WebPlaybackSdkManager>();
+            services.AddScoped<MediaSessionManager>();
             
             // The dependency injection module will take care of the Dispose() call
             services.AddScoped<SpotifyService>();
@@ -85,13 +85,13 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Extension method to initialize SpotifyService. The user must call this method before running the WebAssemblyHost.
         /// </summary>
-        /// <param name="playerDeviceName">The name of the device that will show up in the list of available playback devices in Spotify clients.</param>
+        /// <param name="playerDeviceName">The name of the playback device to be created (that will show up in the list of available devices in Spotify clients).</param>
         /// <param name="permissionScopes">
         /// Permissions that your app will need.
         /// SpotifyService will make no attempt to stop you from using functionality that you have not requested permissions for.
-        /// When you add a new permission, users will have to re-authorize your app. The easiest way to force this is to call <see cref="SpotifyService.Logout"/>.
+        /// When you add a new permission, users will have to re-authorize your app. The easiest way to force this is to call <see cref="SpotifyService.Logout"/> if you do not make use of the Listen Later functionality.
         /// </param>
-        public static async Task InitializeSpotify(this IServiceProvider host, string playerDeviceName, string clientId, Scope permissionScopes)
+        public static async Task InitializeSpotify(this IServiceProvider host, string playerDeviceName, string clientId, List<string> permissionScopes)
         {
             var spotifyService = host.GetRequiredService<SpotifyService>();
             await spotifyService.Initialize(playerDeviceName, clientId, permissionScopes);

@@ -1,4 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+﻿using SpotifyAPI.Web;
 using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify.Web.ViewModels
@@ -7,6 +7,6 @@ namespace Caerostris.Services.Spotify.Web.ViewModels
     {
         public FullPlaylist Playlist { get; set; } = default!;
 
-        public IEnumerable<PlaylistTrack> Tracks { get; set; } = default!;
+        public IEnumerable<PlaylistTrack<FullTrack>> Tracks { get; set; } = default!;
     }
 }

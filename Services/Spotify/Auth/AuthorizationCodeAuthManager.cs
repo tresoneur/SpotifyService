@@ -6,12 +6,12 @@ using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
 using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
 using SpotifyAuthServer.Controllers.Model;
 using SpotifyAuthServer.Model;
 using Caerostris.Services.Spotify.Auth.Abstract;
 using Caerostris.Services.Spotify.Configuration;
 using AuthToken = Caerostris.Services.Spotify.Auth.Models.AuthToken;
+using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify.Auth
 {
@@ -29,8 +29,8 @@ namespace Caerostris.Services.Spotify.Auth
             this.configuration = configuration;
         }
 
-        public override async Task StartProcess(string clientId, string redirectUri, Scope scope) =>
-            await StartProcess(AuthType.AuthorizationCode, clientId, redirectUri, scope);
+        public override async Task StartProcess(string clientId, string redirectUri, List<string> scopes) =>
+            await StartProcess(AuthType.AuthorizationCode, clientId, redirectUri, scopes);
 
         protected override async Task<AuthToken?> GetFirstToken(string callbackUri)
         {

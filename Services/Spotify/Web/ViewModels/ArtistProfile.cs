@@ -1,4 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+﻿using SpotifyAPI.Web;
 using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify.Web.ViewModels

@@ -1,4 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+﻿using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,35 +45,35 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Fetches saved state for a list of tracks.
         /// </summary>
-        /// <param name="idLinkedFromIdPairs">
+        /// <param name="primaryIdLinkedFromIdPairs">
         /// A list of pairs of track IDs such that the first item of a pair is the shown track's ID and the second the ID of the track the first track was relinked from.
         /// </param>
         /// <returns>
         /// For each unique pair, a key-value pair such that the key is the ID of the shown track and the value is the logical value of whether either (shown, relinked-from) track has been saved by the user.
         /// </returns>
-        public async Task<IDictionary<string, bool>> AreTracksSaved(IEnumerable<(string, string?)> idLinkedFromIdPairs)
+        public async Task<IDictionary<string, bool>> AreTracksSaved(IEnumerable<(string, string?)> primaryIdLinkedFromIdPairs)
         { 
-            var ids = idLinkedFromIdPairs.Select(p => p.Item1).ToList();
-            var relinkedFromIds = idLinkedFromIdPairs.Where(p => (p.Item2 is not null)).Select(p => p.Item2!.ToString()).ToList();
+            var primaryIds = primaryIdLinkedFromIdPairs.Select(p => p.Item1).Distinct().ToList();
+            var linkedFromIds = primaryIdLinkedFromIdPairs.Where(p => (p.Item2 is not null)).Select(p => p.Item2!.ToString()).Distinct().ToList();
 
-            var isSaved = await dispatcher.GetTrackSavedStatus(ids.Concat(relinkedFromIds));
+            var isSaved = await dispatcher.GetTrackSavedStatus(primaryIds.Concat(linkedFromIds));
 
-            var primaryOrRelinkedFromSaved = new Dictionary<string, bool>();
-            ids.ForEach(id => primaryOrRelinkedFromSaved[id] = isSaved[id]);
+            var primaryOrLinkedFromSaved = new Dictionary<string, bool>();
+            primaryIds.ForEach(id => primaryOrLinkedFromSaved[id] = isSaved[id]);
 
-            foreach (var relinkedFromTrackKey in isSaved.Keys.Except(primaryOrRelinkedFromSaved.Keys))
+            foreach (var relinkedFromTrackKey in isSaved.Keys.Except(primaryOrLinkedFromSaved.Keys))
             {
-                var id = idLinkedFromIdPairs
+                var id = primaryIdLinkedFromIdPairs
                     .First(p => p.Item2 == relinkedFromTrackKey)
                     .Item1;
 
-                primaryOrRelinkedFromSaved[id] = isSaved[relinkedFromTrackKey];
+                primaryOrLinkedFromSaved[id] = isSaved[relinkedFromTrackKey];
             }
 
-            return primaryOrRelinkedFromSaved;
+            return primaryOrLinkedFromSaved;
         }
 
-        public async Task ToogleTrackSaved(string id, string? linkedFromId)
+        public async Task ToggleTrackSaved(string id, string? linkedFromId)
         {
             // Set new state via the API.
             var removed = false;

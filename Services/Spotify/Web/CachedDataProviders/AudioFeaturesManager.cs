@@ -1,5 +1,5 @@
-﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+﻿using Caerostris.Services.Spotify.Services.Spotify.Web.Api;
+using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,13 +11,13 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
     /// This DataProvider will not download any AudioFeatures by default.
     /// The list of the desired AudioFeatures has to be set manually.
     /// </remarks>
-    public class AudioFeaturesManager : CachedDataProviderBase<AudioFeatures>
+    public class AudioFeaturesManager : CachedDataProviderBase<TrackAudioFeatures>
     {
-        private readonly SpotifyWebAPI api;
-        private readonly IndexedDbCache<AudioFeatures> storageCache;
+        private readonly Api api;
+        private readonly IndexedDbCache<TrackAudioFeatures> storageCache;
         private readonly IndexedDbCache<string> trackIdCache;
 
-        private const string StoreName = nameof(AudioFeatures);
+        private const string StoreName = nameof(TrackAudioFeatures);
         private const string TrackIdsStoreName = nameof(AudioFeaturesManager);
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         /// </summary>
         public IEnumerable<string> TrackIds { private get; set; } = new List<string>();
 
-        public AudioFeaturesManager(SpotifyWebAPI spotifyWebApi, IndexedDbCache<AudioFeatures> dataCache, IndexedDbCache<string> administrativeCache)
+        public AudioFeaturesManager(Api spotifyWebApi, IndexedDbCache<TrackAudioFeatures> dataCache, IndexedDbCache<string> administrativeCache)
         {
             api = spotifyWebApi;
             storageCache = dataCache;
@@ -38,24 +38,24 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         protected override async Task<bool> IsStorageCacheValid() =>
             await SavedAndSetTrackIdsMatch();
 
-        protected override async Task ClearStorageCache() =>
+        public override async Task ClearStorageCache() =>
             await storageCache.Clear(StoreName);
 
-        protected override async Task<IEnumerable<AudioFeatures>> LoadStorageCache(Action<int, int> progressCallback, string market = "") =>
+        protected override async Task<IEnumerable<TrackAudioFeatures>> LoadStorageCache(Action<int, int> progressCallback, string? market = null) =>
             await storageCache.Load(StoreName, progressCallback);
 
-        protected override async Task<IEnumerable<AudioFeatures>> LoadRemoteResource(Action<int, int> progressCallback, string market = "")
+        protected override async Task<IEnumerable<TrackAudioFeatures>> LoadRemoteResource(Action<int, int> progressCallback, string? market = null)
         {
             await trackIdCache.Save(TrackIdsStoreName, new List<string>(TrackIds));
 
-            var result = new List<AudioFeatures>();
+            var result = new List<TrackAudioFeatures>();
 
             const int rateLimitDelayMs = 100;
             const int pageSize = 100;
             int offset = 0;
             while(offset < TrackIds.Count())
             {
-                var downloaded = (await api.GetSeveralAudioFeaturesAsync(TrackIds.Skip(offset).Take(pageSize).ToList())).AudioFeatures;
+                var downloaded = (await api.Client.Tracks.GetSeveralAudioFeatures(new(TrackIds.Skip(offset).Take(pageSize).ToList()))).AudioFeatures;
 
                 progressCallback(offset, TrackIds.Count());
 
@@ -74,7 +74,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         {
             var cachedTrackIds = await trackIdCache.Load(TrackIdsStoreName, null);
 
-            /// On first load. Theoretically, <see cref="TrackIds"/> should be loaded when the <see cref="AudioFeaturesManager"/> is constructed, but there it could not be awaited, so we couldn't guarantee a coherent state when checking cache validity.
+            /// On first load. Theoretically, <see cref="TrackIds"/> should be loaded when the <see cref="AudioFeaturesManager"/> is constructed, but it cannot be awaited there, so we can't guarantee a coherent state when checking cache validity.
             if (!TrackIds.Any() && cachedTrackIds.Any())
             {
                 TrackIds = cachedTrackIds;

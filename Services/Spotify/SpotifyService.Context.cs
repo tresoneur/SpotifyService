@@ -1,5 +1,5 @@
 ﻿using Caerostris.Services.Spotify.Web.ViewModels;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+using SpotifyAPI.Web;
 using System;
 using System.Threading.Tasks;
 
@@ -9,18 +9,15 @@ namespace Caerostris.Services.Spotify
     {
         /// <summary>
         /// Fires when the playback context Uri changes. 
-        /// Note that this includes the case when the context changes to null, which may happen 
-        ///  - after a few minutes of user inactivity;
-        ///  - when the user starts a playback in their Library/Collection/Saved Tracks;
-        ///  etc., alike.
+        /// Note that this includes the case when the <see cref="CurrentlyPlayingContext.Context"/> changes to null, which may happen e.g. when the user starts a playback in their Library.
         /// </summary>
-        public event Func<PlaybackContext, Task>? ContextChanged;
+        public event Func<CurrentlyPlayingContext, Task>? ContextChanged;
 
         /// <summary>
         /// Fetches information about the current playback context, be that an artist, an album or a playlist.
         /// </summary>
         /// <returns>A 3-tuple containing zero or one non-null value(s) of the possible context types.</returns>
-        public async Task<(ArtistProfile?, CompleteAlbum?, CompletePlaylist?)> GetContext(Context? context)
+        public async Task<(ArtistProfile?, CompleteAlbum?, CompletePlaylist?)> GetContext(Context? context) // TODO: make sure this couldn't be put in a nicer way
         {
             if (context is null
                 || string.IsNullOrEmpty(context.Uri))
@@ -46,7 +43,7 @@ namespace Caerostris.Services.Spotify
         public async Task<CompletePlaylist> GetPlaylist(string id) =>
             await dispatcher.GetPlaylist(id);
 
-        private void FireIfContextChanged(PlaybackContext? current, PlaybackContext? next)
+        private void FireIfContextChanged(CurrentlyPlayingContext? current, CurrentlyPlayingContext? next)
         {
             if (next?.Context?.Uri is null)
                 return;

@@ -1,6 +1,6 @@
-﻿using Caerostris.Services.Spotify.Web;
+﻿using Caerostris.Services.Spotify.Web.Extensions;
 using Caerostris.Services.Spotify.Web.CachedDataProviders;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+using SpotifyAPI.Web;
 using Caerostris.Services.Spotify.Web.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace Caerostris.Services.Spotify
     public sealed partial class SpotifyService
     {
         private readonly IndexedDbCache<string> listenLaterStore;
-        private const string StoreName = nameof(Sections);
+        private const string ListenLaterStoreName = nameof(Sections);
 
         public string ExploreArtistUrl { get; set; } = "/artist/";
         public string ExploreAlbumUrl { get; set; } = "/album/";
@@ -28,23 +28,17 @@ namespace Caerostris.Services.Spotify
             var result = await dispatcher.Search(query);
             return new Sections
             {
-                Albums = result.Albums.Items,
-                Artists = result.Artists.Items,
-                Playlists = result.Playlists.Items,
-                Tracks = result.Tracks.Items
+                Albums = result.Albums.Items ?? new List<SimpleAlbum>(),
+                Artists = result.Artists.Items ?? new List<FullArtist>(),
+                Playlists = result.Playlists.Items ?? new List<SimplePlaylist>(),
+                Tracks = result.Tracks.Items ?? new List<FullTrack>()
             };
         }
 
         public async Task<Sections> GetListenLaterItems()
         {
-            var items = await listenLaterStore.Load(StoreName);
-            var result = new Sections()
-            {
-                Tracks = new List<FullTrack>(),
-                Albums = new List<SimpleAlbum>(),
-                Artists = new List<FullArtist>(),
-                Playlists = new List<SimplePlaylist>()
-            };
+            var items = await listenLaterStore.Load(ListenLaterStoreName);
+            var result = new Sections();
 
             IEnumerable<Task> downloads = items
                 .GroupBy(s => s.Split(':').Skip(1).First())
@@ -64,20 +58,20 @@ namespace Caerostris.Services.Spotify
 
         public async Task<bool> IsAddedToListenLater(string uri)
         {
-            var items = await listenLaterStore.Load(StoreName);
+            var items = await listenLaterStore.Load(ListenLaterStoreName);
             return items.Any(i => i == uri);
         }
 
         public async Task AddListenLaterItem(string uri) =>
-            await listenLaterStore.Save(StoreName, new[] { uri });
+            await listenLaterStore.Save(ListenLaterStoreName, new[] { uri });
 
         public async Task RemoveListenLaterItem(string uri)
         {
-            var items = await listenLaterStore.Load(StoreName);
+            var items = await listenLaterStore.Load(ListenLaterStoreName);
             var preservedItems = items.Where(i => (i != uri));
             // TODO: itt adatvesztés lehet, ha nincsen rendes indexeddb remove fg
-            await listenLaterStore.Clear(StoreName);
-            await listenLaterStore.Save(StoreName, preservedItems);
+            await listenLaterStore.Clear(ListenLaterStoreName);
+            await listenLaterStore.Save(ListenLaterStoreName, preservedItems);
         }
     }
 }

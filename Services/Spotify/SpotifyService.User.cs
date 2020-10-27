@@ -1,4 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web;
+﻿using Caerostris.Services.Spotify.Web.Extensions;
 using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify

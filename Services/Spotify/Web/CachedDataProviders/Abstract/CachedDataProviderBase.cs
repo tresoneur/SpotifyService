@@ -11,10 +11,10 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
     /// </summary>
     public abstract class CachedDataProviderBase<TData> : ICachedDataProvider<TData>
     {
-        protected Task<IEnumerable<TData>>? LastRetrieval; // TODO: weak reference
+        protected Task<IEnumerable<TData>>? LastRetrieval;
 
         /// <remarks>Not thread-safe, but Blazor WA scheduling isn't preemptive.</remarks>
-        public async Task<IEnumerable<TData>> GetData(Action<int, int> progressCallback, string market = "")
+        public async Task<IEnumerable<TData>> GetData(Action<int, int> progressCallback, string? market = null)
         {
             // Serving from memory cache.
             if (LastRetrieval is not null)
@@ -56,17 +56,17 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         /// <summary>
         /// Clears the storage cache upon invalidation.
         /// </summary>
-        protected abstract Task ClearStorageCache();
+        public abstract Task ClearStorageCache();
 
         /// <summary>
         /// Loads the storage (LocalStorage, IndexedDB) cache.
         /// </summary>
-        protected abstract Task<IEnumerable<TData>> LoadStorageCache(Action<int, int> progressCallback, string market = "");
+        protected abstract Task<IEnumerable<TData>> LoadStorageCache(Action<int, int> progressCallback, string? market = null);
 
         /// <summary>
         /// Downloads the remote resource and saves it to the storage cache.
         /// </summary>
-        protected abstract Task<IEnumerable<TData>> LoadRemoteResource(Action<int, int> progressCallback, string market = "");
+        protected abstract Task<IEnumerable<TData>> LoadRemoteResource(Action<int, int> progressCallback, string? market = null);
 
         private async Task<IEnumerable<TData>> SetAsLastRetrievalAndAwait(Func<Task<IEnumerable<TData>>> func)
         {

@@ -5,8 +5,7 @@ using System.Web;
 using Blazor.Extensions.Storage.Interfaces;
 using Caerostris.Services.Spotify.Auth.Models;
 using Microsoft.AspNetCore.Components;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Enums;
-using Caerostris.Services.Spotify.Web.SpotifyAPI.Web;
+using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify.Auth.Abstract
 {
@@ -28,9 +27,9 @@ namespace Caerostris.Services.Spotify.Auth.Abstract
             NavigationManager = injectedNavigatorManager;
         }
 
-        public abstract Task StartProcess(string clientId, string redirectUri, Scope scope);
+        public abstract Task StartProcess(string clientId, string redirectUri, List<string> scopes);
 
-        protected async Task StartProcess(AuthType type, string clientId, string redirectUri, Scope scope)
+        protected async Task StartProcess(AuthType type, string clientId, string redirectUri, List<string> scopes)
         {
             // Generate a state string and save it to LocalStorage to protect the client from CSRF.
             var state = new AuthWorkflow
@@ -44,8 +43,7 @@ namespace Caerostris.Services.Spotify.Auth.Abstract
             builder.Append(ApiBase);
             builder.Append($"?response_type={type switch { AuthType.ImplicitGrant => "token", AuthType.AuthorizationCode => "code", _ => throw new ArgumentException($"No such {nameof(AuthType)}.") }}");
             builder.Append($"&client_id={clientId}");
-            if (scope != Scope.None)
-                builder.Append($"&scope={scope.GetStringAttribute(separator: " ")}");
+            builder.Append($"&scope={string.Join(' ', scopes)}");
             builder.Append($"&redirect_uri={redirectUri}");
             builder.Append($"&state={state.State}");
             builder.Append("&show_dialog=true"); // Spotify won't show the dialog by default even if the request contains new scopes

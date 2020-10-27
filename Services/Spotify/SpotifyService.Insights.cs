@@ -1,4 +1,4 @@
-﻿using Caerostris.Services.Spotify.Web.SpotifyAPI.Web.Models;
+﻿using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         public event Action<int, int>? AnalyticsLoadingProgress;
 
-        public async Task<IEnumerable<AudioFeatures>> GetAudioFeaturesForSavedTracks()
+        public async Task<IEnumerable<TrackAudioFeatures>> GetAudioFeaturesForSavedTracks()
         {
             var savedTracks = await GetSavedTracks();
             return await dispatcher.GetAudioFeatures(

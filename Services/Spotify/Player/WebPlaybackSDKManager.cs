@@ -48,7 +48,14 @@ namespace Caerostris.Services.Spotify.Player
             this.errorCallback = errorCallback;
             this.onDeviceReady = onDeviceReady;
 
-            await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Initialize", selfReference, name);
+            try
+            {
+                await jsRuntime.InvokeVoidAsync($"{JsWrapper}.Initialize", selfReference, name);
+            }
+            catch (JSException)
+            {
+                await errorCallback("The Spotify Web Playback SDK is missing.");
+            }
         }
 
         [JSInvokable]
