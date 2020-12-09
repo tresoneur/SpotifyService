@@ -1,4 +1,5 @@
-﻿using SpotifyAPI.Web;
+﻿using Caerostris.Services.Spotify.Web.Extensions;
+using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace Caerostris.Services.Spotify.Web.Helpers
         internal const int DefaultBatchSize = 10;
         internal const int DefaultPageSize = 50;
 
-        private static readonly SemaphoreSlim RateLimitLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim RateLimitLock = new(1, 1);
 
         internal static async Task<IEnumerable<TResult>> SynchronizedDownloadPagedResources<TResult>(
             Func<int, int, Task<Paging<TResult>>> aquire,
@@ -37,16 +38,16 @@ namespace Caerostris.Services.Spotify.Web.Helpers
 
                 // Aquire total count.
                 var firstPage = await aquire(0, pageSize);
-                addToResults(firstPage.Items, firstPage.Total ?? 0);
+                addToResults(firstPage.ItemsOrEmptyList(), firstPage.Total ?? 0);
 
                 // The rest can be downloaded in parallel.
-                if (firstPage.Items.Count < firstPage.Total)
+                if (firstPage.ItemsOrEmptyList().Count < firstPage.Total)
                 {
                     var pages = new List<Func<Task<IEnumerable<TResult>>>>();
                     for (int offset = pageSize; offset < ((maxPages * pageSize) ?? firstPage.Total); offset += pageSize)
                     {
                         var o = offset;
-                        pages.Add(async () => (await aquire(o, pageSize)).Items);
+                        pages.Add(async () => (await aquire(o, pageSize)).ItemsOrEmptyList());
                     }
 
                     await DownloadParallel(

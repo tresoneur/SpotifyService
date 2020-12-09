@@ -1,28 +1,47 @@
 ﻿using Caerostris.Services.Spotify.Web.Extensions;
 using Caerostris.Services.Spotify.Web.ViewModels;
-using Caerostris.Services.Spotify.Web.Extensions;
 using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Caerostris.Services.Spotify.Web;
+using Caerostris.Services.Spotify.Configuration;
+using Caerostris.Services.Spotify.Player;
 
-namespace Caerostris.Services.Spotify
+namespace Caerostris.Services.Spotify.Sections
 {
-    public sealed partial class SpotifyService
+    public sealed class PlaybackService
     {
+        private readonly WebApiManager dispatcher;
+        private readonly WebPlaybackSdkManager player;
+        private readonly MediaSessionManager mediaSession;
+        private readonly AuthorizationService auth;
+
+        private bool isPlaybackLocal = false;
+        private string? localDeviceId;
+
+        private readonly SpotifyServiceConfiguration config;
+
         /// <summary>
         /// The authoritative PlaybackContext.
         /// </summary>
         private CurrentlyPlayingContext? lastKnownPlayback;
+
         private DateTime? lastKnownPlaybackTimestamp;
 
         /// <summary>
-        /// Fires when a new PlaybackContext is received from the Spotify API. A <seealso cref="PlaybackDisplayUpdate"/> event is also fired afterwards.
+        /// Fires when a new and valid PlaybackContext is received from the Spotify API. A <seealso cref="PlaybackDisplayUpdate"/> event is also fired afterwards.
         /// </summary>
         public event Func<CurrentlyPlayingContext, Task>? PlaybackChanged;
-        private Timer playbackContextPollingTimer;
+
+        /// <summary>
+        /// Fires when a PlaybackContext is received from the Spotify API. The first parameter is the last known PlaybackContext, the second is the newly received one.
+        /// </summary>
+        public event Func<CurrentlyPlayingContext?, CurrentlyPlayingContext?, Task>? UnsafePlaybackChanged;
+
+        private readonly Timer playbackContextPollingTimer;
 
         /// <summary>
         /// Fires when the display of the PlaybackContext needs to be updated with the supplied arguments.
@@ -30,34 +49,54 @@ namespace Caerostris.Services.Spotify
         /// Suggested use: refresh the UI periodically.
         /// </summary>
         public event Action<int>? PlaybackDisplayUpdate;
-        private Timer playbackUpdateTimer;
 
-        private Timer playbackKeepAliveTimer;
+        private readonly Timer playbackUpdateTimer;
 
-        private async Task InitializePlayback()
+        private readonly Timer playbackKeepAliveTimer;
+
+        public PlaybackService(
+            WebApiManager webApiManager,
+            WebPlaybackSdkManager webPlaybackSdkManager,
+            MediaSessionManager mediaSessionManager,
+            AuthorizationService spotifyServiceAuth,
+            SpotifyServiceConfiguration spotifyServiceConfiguration)
         {
+            dispatcher = webApiManager;
+            player = webPlaybackSdkManager;
+            mediaSession = mediaSessionManager;
+            auth = spotifyServiceAuth;
+            config = spotifyServiceConfiguration;
+
+            PlaybackChanged += OnDevicePotentiallyChanged;
+            PlaybackChanged += mediaSession.SetMetadata;
+            auth.AuthStateChanged += OnReInitializationPotenitallyNeeded;
+
             playbackContextPollingTimer = new(
-                callback: async _ => { if (await IsAuthGranted()) FirePlaybackContextChanged(await GetPlayback()); },
-                state: null,
-                dueTime: 0,
-                period: 1000);
+               callback: async _ => { if (await auth.IsUserLoggedIn()) await FirePlaybackContextChanged(await GetPlayback()); },
+               state: null,
+               dueTime: 0,
+               period: 1000);
 
             playbackUpdateTimer = new(
-                callback: async _ => { if (await IsAuthGranted()) PlaybackDisplayUpdate?.Invoke(GetProgressMs()); },
+                callback: async _ => { if (await auth.IsUserLoggedIn()) PlaybackDisplayUpdate?.Invoke(GetProgressMs()); },
                 state: null,
                 dueTime: 0,
                 period: 33);
 
-
             int playbackKeepAliveTimerPeriod = Convert.ToInt32(TimeSpan.FromMinutes(1).TotalMilliseconds);
 
             playbackKeepAliveTimer = new(
-                callback: async _ => { if (await IsAuthGranted()) await KeepPlaybackAlive(); },
+                callback: async _ => { if (await auth.IsUserLoggedIn()) await KeepPlaybackAlive(); },
                 state: null,
                 dueTime: playbackKeepAliveTimerPeriod,
                 period: playbackKeepAliveTimerPeriod);
+        }
 
+        internal async Task Initialize()
+        {
             await EnsureActiveDeviceIsAvailable();
+
+            await mediaSession.Initialize(Play, Pause, Previous, Next);
         }
 
         /// <summary>
@@ -88,8 +127,13 @@ namespace Caerostris.Services.Spotify
         public async Task Next() =>
             await DoPlaybackOperation(dispatcher.SkipPlaybackToNext, player.Next, startsPlayback: true);
 
-        public async Task Previous() =>
-            await DoPlaybackOperation(dispatcher.SkipPlaybackToPrevious, player.Previous, startsPlayback: true);
+        public async Task Previous()
+        {
+            if (lastKnownPlayback is not null && lastKnownPlayback.ProgressMs < 5 * 1000)
+                await DoPlaybackOperation(dispatcher.SkipPlaybackToPrevious, player.Previous, startsPlayback: true);
+            else
+                await Seek(0);
+        }
 
         public async Task Seek(int positionMs) =>
             await DoPlaybackOperation(
@@ -133,7 +177,7 @@ namespace Caerostris.Services.Spotify
                 await remote();
 
             await Task.Delay(200); // The Spotify Web API returns incorrect results if the PlaybackContext is requested right after a playback operation.
-            FirePlaybackContextChanged(await dispatcher.GetPlayback());
+            await FirePlaybackContextChanged(await dispatcher.GetPlayback());
         }
 
         public int GetProgressMs()
@@ -157,19 +201,23 @@ namespace Caerostris.Services.Spotify
             }
         }
 
-        private void FirePlaybackContextChanged(CurrentlyPlayingContext? playback)
+        private async Task FirePlaybackContextChanged(CurrentlyPlayingContext? playback)
         {
             var timestamp = DateTime.UtcNow;
 
-            FireIfContextChanged(lastKnownPlayback, playback);
-
-            if (playback is null)
-                return;
+            if (UnsafePlaybackChanged is not null)
+                await UnsafePlaybackChanged(lastKnownPlayback, playback);
 
             lastKnownPlayback = playback;
             lastKnownPlaybackTimestamp = timestamp; // The timestamp returned by the Spotify API is unreliable.
-            PlaybackChanged?.Invoke(playback);
-            PlaybackDisplayUpdate?.Invoke(GetProgressMs());
+
+            if (playback is not null)
+            {
+                if (PlaybackChanged is not null)
+                    await PlaybackChanged(playback);
+
+                PlaybackDisplayUpdate?.Invoke(GetProgressMs());
+            }
         }
 
         private async Task KeepPlaybackAlive()
@@ -184,16 +232,67 @@ namespace Caerostris.Services.Spotify
 
         private async Task EnsureActiveDeviceIsAvailable()
         {
-            if (await IsAuthGranted())
+            if (await auth.IsUserLoggedIn())
             {
-                var devices = await GetDevices();
-                if (devices.Any(d => d.IsActive))
+                if ((await GetDevices()).FirstOrDefault(d => d.IsActive) is Device targetDevice)
                 {
-                    var targetDevice = devices.First();
                     await TransferPlayback(targetDevice.Id);
-                    Log($"No active device found. Playback transferred to device \"{targetDevice.Name}\".");
+                    Console.WriteLine($"No active device found. Playback transferred to device \"{targetDevice.Name}\".");
                 }
             }
+        }
+
+        #region LocalPlayback
+
+        private async Task OnLocalPlayerReady(string deviceId)
+        {
+            localDeviceId = deviceId;
+            await TransferPlayback(deviceId);
+            isPlaybackLocal = true;
+            Console.WriteLine("Playback automatically transferred to local device.");
+        }
+
+        private async Task OnDevicePotentiallyChanged(CurrentlyPlayingContext playback)
+        {
+            if (playback.Device?.Id is not null)
+            {
+                bool playbackContextIndicatesLocalPlayback =
+                    playback.Device.Id.Equals(localDeviceId, StringComparison.InvariantCulture);
+
+                if (isPlaybackLocal && !playbackContextIndicatesLocalPlayback)
+                {
+                    isPlaybackLocal = false;
+                    Console.WriteLine("Playback transferred to remote device.");
+                }
+                else if (!isPlaybackLocal && playbackContextIndicatesLocalPlayback)
+                {
+                    isPlaybackLocal = true;
+                    Console.WriteLine("Playback transferred back to local device.");
+                }
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async void OnReInitializationPotenitallyNeeded(bool authorized)
+        {
+            if (authorized)
+            {
+                await player.Initialize(
+                    auth.GetAuthToken,
+                    (e) => { Console.WriteLine(e); return Task.CompletedTask; },
+                    OnLocalPlayerReady,
+                    config.PlayerDeviceName);
+            }
+        }
+
+        #endregion
+
+        public void Dispose()
+        {
+            playbackContextPollingTimer.Dispose();
+            playbackUpdateTimer.Dispose();
+            playbackKeepAliveTimer.Dispose();
         }
     }
 }

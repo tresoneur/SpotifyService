@@ -1,13 +1,23 @@
-﻿using SpotifyAPI.Web;
+﻿using Caerostris.Services.Spotify.Web;
+using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Caerostris.Services.Spotify
+namespace Caerostris.Services.Spotify.Sections
 {
-    public sealed partial class SpotifyService
+    public sealed class LibraryService
     {
+        private readonly WebApiManager dispatcher;
+        private readonly UserService user;
+
+        /// <summary>
+        /// Subscribe to this event to get updates about the (down)loading of the audio analytics associated with the user's saved tracks.
+        /// Analytics are typically downloaded in batches of 100, loaded from cache in batches of 10, and frequently number in the thousands.
+        /// </summary>
+        public event Action<int, int>? AnalyticsLoadingProgress;
+
         /// <summary>
         /// Subscribe to this event to get updates for the progress concerning the downloading or loading of the user's saved tracks.
         /// Tracks are typically downloaded in batches of 50, loaded from cache in batches of 10, and frequently number in the thousands.
@@ -17,12 +27,20 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Fired when the list of user playlists changes as a result of an action carried out by <see cref="SpotifyService"/>.
         /// </summary>
-        public event Func<Task> UserPlaylistsChanged;
+        public event Func<Task>? UserPlaylistsChanged;
 
         /// <summary>
         /// Fired when a track is saved or unsaved. The parameters supplied are the ID of the track and the new state, respectively.
         /// </summary>
-        public event Action<string, bool> SavedStateChanged;
+        public event Action<string, bool>? SavedStateChanged;
+
+        public LibraryService(
+            WebApiManager webApiManager,
+            UserService spotifyServiceUser)
+        {
+            dispatcher = webApiManager;
+            user = spotifyServiceUser;
+        }
 
         /// <summary>
         /// Gets the user's saved tracks. This can either take several minutes or return with the cached values almost immediately. 
@@ -100,20 +118,32 @@ namespace Caerostris.Services.Spotify
                 SavedStateChanged?.Invoke(linkedFromId, !removed);
         }
 
+        public async Task<IEnumerable<TrackAudioFeatures>> GetAudioFeaturesForSavedTracks()
+        {
+            var savedTracks = await GetSavedTracks();
+            return await dispatcher.GetAudioFeatures(
+                savedTracks.Select(t => t.Track.Id),
+                (c, t) => AnalyticsLoadingProgress?.Invoke(c, t));
+        }
+
         /// <summary>
         /// Returns the list of playlists that the user either owns or follows.
         /// </summary>
         public async Task<IEnumerable<SimplePlaylist>> GetUserPlaylists() =>
-            await dispatcher.GetUserPlaylists(await GetUserId());
+            await dispatcher.GetUserPlaylists(await user.GetUserId());
 
         /// <summary>
         /// Creates a playlist with the given title, description (can contain html markup) and track URIs.
         /// </summary>
         public async Task CreatePlaylist(string title, string description, IEnumerable<string> trackUris)
         {
-            var createdPlaylist = await dispatcher.CreatePlaylist(await GetUserId(), title, description);
-            await dispatcher.AddPlaylistTracks(createdPlaylist.Id, trackUris);
-            _ = UserPlaylistsChanged?.Invoke();
+            var createdPlaylist = await dispatcher.CreatePlaylist(await user.GetUserId(), title, description);
+            if (createdPlaylist.Id is not null)
+            {
+                await dispatcher.AddPlaylistTracks(createdPlaylist.Id, trackUris);
+                if (UserPlaylistsChanged is not null)
+                    await UserPlaylistsChanged();
+            }
         }
 
         /// <summary>

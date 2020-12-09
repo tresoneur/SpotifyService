@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Caerostris.Services.Spotify.Player
 {
-    public class MediaSessionManager : IDisposable
+    public sealed class MediaSessionManager : IDisposable
     {
         private const string JsWrapper = "SpotifyService.MediaSessionWrapper";
 
@@ -19,14 +19,14 @@ namespace Caerostris.Services.Spotify.Player
         private Func<Task>? onPrevious;
         private Func<Task>? onNext;
 
-        public MediaSessionManager(IJSRuntime injectedJsRuntime)
+        public MediaSessionManager(IJSRuntime jsRuntime)
         {
-            jsRuntime = injectedJsRuntime;
+            this.jsRuntime = jsRuntime;
             selfReference = DotNetObjectReference.Create(this);
         }
 
         /// <summary>
-        /// Call this method before you attempt to interact with this class in other any way.
+        /// Call this method before you attempt to interact with this class in any other way.
         /// </summary>
         public async Task Initialize(
             Func<Task> play,

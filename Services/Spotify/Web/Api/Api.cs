@@ -20,7 +20,7 @@ namespace Caerostris.Services.Spotify.Services.Spotify.Web.Api
             Client = BuildClient(token);
         }
 
-        private SpotifyClient BuildClient(string token = "")
+        private static SpotifyClient BuildClient(string token = "")
         {
             var config = SpotifyClientConfig
                 .CreateDefault(token)

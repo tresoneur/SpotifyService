@@ -11,7 +11,10 @@ using AutoMapper;
 
 namespace Caerostris.Services.Spotify.Web.Extensions
 {
-    public static class WebApiModelExtensions // TODO: break up
+    /// <summary>
+    /// Extension methods defined on model classes from SpotifyAPI-NET.
+    /// </summary>
+    public static class WebApiModelExtensions
     {
         private static readonly IMapper mapper = 
             new MapperConfiguration(cfg => 
@@ -101,6 +104,90 @@ namespace Caerostris.Services.Spotify.Web.Extensions
                 artist.Genres
                     .Take((limit != 0) ? limit : artist.Genres.Count)
                     .Select(genre => Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(genre)));
+        }
+
+        #endregion
+
+
+        #region Paging
+
+        public static List<TData> ItemsOrEmptyList<TData>(this Paging<TData> page) =>
+            page.Items ?? new();
+
+        #endregion
+
+
+        #region RepeatState
+
+        public static PlayerSetRepeatRequest.State AsPlayerSetRepeatRequestState(this RepeatState state) =>
+            state switch
+            {
+                RepeatState.Track => PlayerSetRepeatRequest.State.Track,
+                RepeatState.Context => PlayerSetRepeatRequest.State.Context,
+                RepeatState.Off => PlayerSetRepeatRequest.State.Off,
+                _ => throw new ArgumentException($"No such {nameof(RepeatState)}.")
+            };
+
+        public static string AsString(this RepeatState state) =>
+            Enum.GetName(typeof(RepeatState), state)?.ToLowerInvariant() ?? "off";
+
+        #endregion
+
+
+        #region Track
+
+        // The raison d'être for these trivial converters is that the SpotifyAPI-NET library doesn't contain interfaces or base classes for model classes.
+        // Also, I've rewritten all of this with AutoMapper once, but this version is just far more readable.
+
+        public static Track AsTrack(this PlaylistTrack<FullTrack> playlistTrack, int uniqueIdSeed)
+        {
+            var track = playlistTrack.Track.AsTrack(uniqueIdSeed);
+            track.AddedAt = playlistTrack.AddedAt ?? DateTimeOffset.UnixEpoch.DateTime;
+            return track;
+        }
+
+        public static Track AsTrack(this SavedTrack savedTrack, int uniqueIdSeed)
+        {
+            var track = savedTrack.Track.AsTrack(uniqueIdSeed);
+            track.AddedAt = savedTrack.AddedAt;
+            return track;
+        }
+
+        public static Track AsTrack(this FullTrack fullTrack, int uniqueIdSeed)
+        {
+            return new Track()
+            {
+                Uri = fullTrack.Uri,
+                UniqueId = $"{fullTrack.Id}{uniqueIdSeed}",
+                Id = fullTrack.Id,
+                ExternalUrl = fullTrack.ExternalUrls["spotify"],
+                LinkedFromId = fullTrack.LinkedFrom?.Id,
+                Title = fullTrack.Name,
+                Explicit = fullTrack.Explicit,
+                AlbumTitle = fullTrack.Album.Name,
+                AlbumExternalUrls = fullTrack.Album.ExternalUrls,
+                AlbumId = fullTrack.Album.Id,
+                AlbumTrackNumber = fullTrack.TrackNumber,
+                Artists = fullTrack.Artists,
+                Popularity = fullTrack.Popularity,
+                DurationMs = fullTrack.DurationMs
+            };
+        }
+
+        public static Track AsTrack(this SimpleTrack simpleTrack, int uniqueIdSeed)
+        {
+            return new Track()
+            {
+                Uri = simpleTrack.Uri,
+                UniqueId = $"{simpleTrack.Id}{uniqueIdSeed}",
+                Id = simpleTrack.Id,
+                ExternalUrl = simpleTrack.ExternalUrls["spotify"],
+                Title = simpleTrack.Name,
+                Explicit = simpleTrack.Explicit,
+                AlbumTrackNumber = simpleTrack.TrackNumber,
+                Artists = simpleTrack.Artists,
+                DurationMs = simpleTrack.DurationMs
+            };
         }
 
         #endregion

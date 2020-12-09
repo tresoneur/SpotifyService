@@ -1,26 +1,26 @@
-﻿using SpotifyAPI.Web;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Caerostris.Services.Spotify.Auth.Abstract;
-using System.Collections.Generic;
+using Caerostris.Services.Spotify.Web;
+using Caerostris.Services.Spotify.Configuration;
+using System.Linq;
 
-namespace Caerostris.Services.Spotify
+namespace Caerostris.Services.Spotify.Sections
 {
-    public sealed partial class SpotifyService
+    public sealed class AuthorizationService
     {
-        private string clientId;
-
-        private List<string> permissions;
-
+        private readonly WebApiManager dispatcher;
         private readonly AuthManagerBase authManager;
+
+        private readonly SpotifyServiceConfiguration config;
 
         /// <summary>
         /// Fires when the auth state changes: either the current token expires or a new token is acquired.
         /// Also fires when a valid token is found in cache on startup. The SpotifyService instance won't be able to fetch any user-specific data before this happens, so it is best if any component in need of e.g. the username subscribes to this event.
         /// </summary>
         public event Action<bool>? AuthStateChanged;
-        private Timer authPollingTimer;
+        private readonly Timer authPollingTimer;
         private bool authGrantedWhenLastChecked = false;
 
         /// <summary>
@@ -28,18 +28,25 @@ namespace Caerostris.Services.Spotify
         /// </summary>
         public readonly string RelativeCallbackUrl = "/callback";
 
-        private async Task InitializeAuth(string clientId, List<string> permissionScopes)
+        public AuthorizationService(
+            WebApiManager webApiManager,
+            AuthManagerBase authManagerBase,
+            SpotifyServiceConfiguration spotifyServiceConfiguration)
         {
-            this.clientId = clientId;
-            permissions = permissionScopes;
-
-            await CheckAuth();
+            dispatcher = webApiManager;
+            authManager = authManagerBase;
+            config = spotifyServiceConfiguration;
 
             authPollingTimer = new(
-                callback: async _ => { await CheckAuth(); },
+                callback: async _ => { await HandleAuthStatePotentiallyChanged(); },
                 state: null,
                 dueTime: 1000,
                 period: 1000);
+        }
+
+        internal async Task Initialize()
+        {
+            await HandleAuthStatePotentiallyChanged();
         }
 
         /// <summary>
@@ -54,64 +61,68 @@ namespace Caerostris.Services.Spotify
         public async Task StartAuth(string callbackUri)
         {
             await authManager.StartProcess(
-                clientId,
+                config.ClientId,
                 callbackUri,
-                permissions
+                config.PermissionScopes.ToList()
             );
         }
 
         /// <summary>
-        /// The OAuth2 Implicit Grant process involves a callback to an address provided by the caller of <see cref="StartAuth(string)"/> to redirect to after authentication success or failure.
+        /// The OAuth2 Grant process involves a callback to an address provided by the caller of <see cref="StartAuth(string)"/> to redirect to after authentication success or failure.
         /// Invoke this function at the given address.
         /// </summary>
-        /// <returns>Whether the process was successful</returns>
+        /// <returns>Whether the process was successful.</returns>
         public async Task<bool> ContinueAuthOnCallback(string callbackUri)
         {
-            // Internal redirection inside (forceReload: false)
+            // Internal redirection inside (forceReload: false).
             string? token = await authManager.GetTokenOnCallback(callbackUri);
 
             if (token is null)
                 return false;
 
-            dispatcher.Authorize(token);
-
-            // Fire event(s)
-            await CheckAuth();
+            // Authorize dispatcher, fire event(s).
+            await HandleAuthStatePotentiallyChanged();
 
             return true;
         }
 
         /// <summary>
-        /// Checks whether there is a valid token to use.
+        /// Checks whether a user is logged in.
         /// </summary>
-        public async Task<bool> IsAuthGranted()
+        public async Task<bool> IsUserLoggedIn()
         {
-            return ((await GetAuthToken()) is not null);
+            // This call is necessary to guarantee that every part of the library is in a state where it can hande auth-only requests, e.g. the WebAPI client is authorized, etc.
+            await HandleAuthStatePotentiallyChanged();
+            return await IsValidAuthTokenPresent();
         }
 
         public async Task Logout()
         {
-            await Cleanup();
             await authManager.Logout();
         }
 
-        private async Task CheckAuth()
+        private async Task HandleAuthStatePotentiallyChanged()
         {
-            string? token = await GetAuthToken();
+            bool authGranted = (await IsValidAuthTokenPresent());
 
-            if (token is not null)
+            if (authGranted && (await GetAuthToken()) is string token)
                 dispatcher.Authorize(token);
 
-            bool authGranted = (await IsAuthGranted());
             if (authGranted != authGrantedWhenLastChecked)
             {
+                Console.WriteLine($"Authorization state changed to: {authGranted}");
                 authGrantedWhenLastChecked = authGranted;
-                Log($"Authorization state changed to: {authGranted}");
                 AuthStateChanged?.Invoke(authGranted);
             }
         }
 
-        private async Task<string?> GetAuthToken() =>
+        internal async Task<string?> GetAuthToken() =>
             await authManager.GetToken();
+
+        public void Dispose() =>
+            authPollingTimer.Dispose();
+
+        private async Task<bool> IsValidAuthTokenPresent() =>
+            ((await GetAuthToken()) is not null);
     }
 }

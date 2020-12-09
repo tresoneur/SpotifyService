@@ -12,8 +12,8 @@ namespace Caerostris.Services.Spotify.Auth
     /// </summary>
     public class ImplicitGrantAuthManager : AuthManagerBase
     {
-        public ImplicitGrantAuthManager(ILocalStorage injectedLocalStorage, NavigationManager injectedNavigatorManager)
-         : base(injectedLocalStorage, injectedNavigatorManager) 
+        public ImplicitGrantAuthManager(ILocalStorage localStorage, NavigationManager navigatorManager)
+         : base(localStorage, navigatorManager) 
         { }
 
         public override async Task StartProcess(string clientId, string redirectUri, List<string> scopes) =>

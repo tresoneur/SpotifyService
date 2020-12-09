@@ -1,64 +1,50 @@
-﻿using Caerostris.Services.Spotify.Player;
+﻿using Caerostris.Services.Spotify.Sections;
 using Caerostris.Services.Spotify.Web;
-using System;
 using System.Threading.Tasks;
-using Caerostris.Services.Spotify.Auth.Abstract;
-using Caerostris.Services.Spotify.Web.CachedDataProviders;
 using SpotifyAPI.Web;
-using System.Collections.Generic;
 
 namespace Caerostris.Services.Spotify
 {
-    /// <remarks>
-    /// Choose the 'singleton' instantiation mode when using Dependency Injection.
-    /// </remarks>
-    public sealed partial class SpotifyService : IDisposable
+    public sealed partial class SpotifyService
     {
         private readonly WebApiManager dispatcher;
 
-        #pragma warning disable CS8618 // Partial constructors aren't a thing, so the initalizations of these attributes happen in the Initialize...() methods. TODO: szétszedni
+        public AuthorizationService Auth { get; private set; }
+        public ContextsService Context { get; private set; }
+        public ExploreService Explore { get; private set; }
+        public LibraryService Library { get; private set; }
+        public PlaybackService Playback { get; private set; }
+        public UserService User { get; private set; }
+
         public SpotifyService(
-            AuthManagerBase authManagerBase,
             WebApiManager webApiManager,
-            WebPlaybackSdkManager webPlaybackSdkManager,
-            MediaSessionManager mediaSessionManager,
-            IndexedDbCache<string> indexedDbCache)
-        #pragma warning restore CS8618
+            AuthorizationService spotifyServiceAuth,
+            ContextsService spotifyServiceContext,
+            ExploreService spotifyServiceExplore,
+            LibraryService spotifyServiceLibrary,
+            PlaybackService spotifyServicePlayback,
+            UserService spotifyServiceUser)
         {
             dispatcher = webApiManager;
-            authManager = authManagerBase;
-            player = webPlaybackSdkManager;
-            mediaSession = mediaSessionManager;
-            listenLaterStore = indexedDbCache;
+            Auth = spotifyServiceAuth;
+            Context = spotifyServiceContext;
+            Explore = spotifyServiceExplore;
+            Library = spotifyServiceLibrary;
+            Playback = spotifyServicePlayback;
+            User = spotifyServiceUser;
         }
 
-        public async Task Initialize(string deviceName, string clientId, List<string> permissionScopes)
+        public async Task Initialize()
         {
-            await InitializePlayer(deviceName);
-            await InitializeAuth(clientId, permissionScopes);
-            await InitializePlayback();
+            await Auth.Initialize();
+            await Playback.Initialize();
         }
 
-        private async Task OnNoncriticalError(string message)
-        {
-            Log($"Error: {message}");
-            await Task.CompletedTask;
-        }
-
-        private static void Log(string message) =>
-            Console.WriteLine($"SpotifyService: {message}");
-
-        private async Task Cleanup()
+        public async Task Logout()
         {
             await dispatcher.Cleanup();
-            await listenLaterStore.Clear(ListenLaterStoreName);
-        }
-
-        public void Dispose()
-        {
-            playbackContextPollingTimer.Dispose();
-            playbackUpdateTimer.Dispose();
-            authPollingTimer.Dispose();
+            await Explore.Cleanup();
+            await Auth.Logout();
         }
     }
 }

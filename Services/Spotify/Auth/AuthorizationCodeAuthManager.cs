@@ -22,9 +22,9 @@ namespace Caerostris.Services.Spotify.Auth
     {
         private readonly SpotifyServiceConfiguration configuration;
 
-        public AuthorizationCodeAuthManager(ILocalStorage injectedLocalStorage,
-            NavigationManager injectedNavigatorManager, SpotifyServiceConfiguration configuration)
-            : base(injectedLocalStorage, injectedNavigatorManager)
+        public AuthorizationCodeAuthManager(ILocalStorage localStorage,
+            NavigationManager navigatorManager, SpotifyServiceConfiguration configuration)
+            : base(localStorage, navigatorManager)
         {
             this.configuration = configuration;
         }

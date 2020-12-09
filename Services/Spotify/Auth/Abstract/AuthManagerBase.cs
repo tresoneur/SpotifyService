@@ -21,10 +21,10 @@ namespace Caerostris.Services.Spotify.Auth.Abstract
 
         protected Task<AuthToken?>? MemoryCachedToken;
 
-        protected AuthManagerBase(ILocalStorage injectedLocalStorage, NavigationManager injectedNavigatorManager)
+        protected AuthManagerBase(ILocalStorage localStorage, NavigationManager navigatorManager)
         {
-            LocalStorage = injectedLocalStorage;
-            NavigationManager = injectedNavigatorManager;
+            LocalStorage = localStorage;
+            NavigationManager = navigatorManager;
         }
 
         public abstract Task StartProcess(string clientId, string redirectUri, List<string> scopes);
@@ -134,12 +134,12 @@ namespace Caerostris.Services.Spotify.Auth.Abstract
         {
             var uriBuilder = new UriBuilder(NavigationManager.Uri);
 
-            // The Spotify API returns the parameters in the fragment in the implicit grant scheme, but uses the query in the auth code workflow.
-            var q = HttpUtility.ParseQueryString(uriBuilder.Fragment.Replace('#', '?'));
-            if (q["state"] is null)
-                q = HttpUtility.ParseQueryString(uriBuilder.Query);
+            // The OAuth 2.0 RFC specifies that the parameters should be returned in the URI fragment in the implicit grant scheme, and in the URI query in the auth code grant workflow.
+            var query = HttpUtility.ParseQueryString(uriBuilder.Fragment.Replace('#', '?'));
+            if (query["state"] is null)
+                query = HttpUtility.ParseQueryString(uriBuilder.Query);
 
-            return q[paramName];
+            return query[paramName];
         }
 
         protected async Task<AuthWorkflow?> GetWorkflow() =>

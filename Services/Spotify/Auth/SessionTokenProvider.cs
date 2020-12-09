@@ -5,7 +5,7 @@ namespace Caerostris.Services.Spotify.Auth
     public static class SessionTokenProvider
     {
         // RNGCryptoServiceProvider not supported by the .NET 5 browser-wasm runtime
-        private static readonly Random Random = new Random();
+        private static readonly Random Random = new();
 
         public static string GetSessionToken()
         {

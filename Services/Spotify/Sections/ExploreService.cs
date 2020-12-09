@@ -1,16 +1,20 @@
-﻿using Caerostris.Services.Spotify.Web.Extensions;
+﻿using Caerostris.Services.Spotify.Web;
+using Caerostris.Services.Spotify.Web.Extensions;
 using Caerostris.Services.Spotify.Web.CachedDataProviders;
-using SpotifyAPI.Web;
 using Caerostris.Services.Spotify.Web.ViewModels;
+using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Caerostris.Services.Spotify
+
+namespace Caerostris.Services.Spotify.Sections
 {
-    public sealed partial class SpotifyService
+    public sealed class ExploreService
     {
+        private readonly WebApiManager dispatcher;
+
         private readonly IndexedDbCache<string> listenLaterStore;
         private const string ListenLaterStoreName = nameof(Sections);
 
@@ -21,12 +25,20 @@ namespace Caerostris.Services.Spotify
         /// <summary>
         /// Provides persistence for the search query.
         /// </summary>
-        public string SearchQuery { get; set; }
+        public string SearchQuery { get; set; } = "";
 
-        public async Task<Sections> Search(string query)
+        public ExploreService(
+            WebApiManager webApiManager,
+            IndexedDbCache<string> indexedDbCache)
+        {
+            dispatcher = webApiManager;
+            listenLaterStore = indexedDbCache;
+        }
+
+        public async Task<Web.ViewModels.Sections> Search(string query)
         {
             var result = await dispatcher.Search(query);
-            return new Sections
+            return new()
             {
                 Albums = result.Albums.Items ?? new List<SimpleAlbum>(),
                 Artists = result.Artists.Items ?? new List<FullArtist>(),
@@ -35,10 +47,10 @@ namespace Caerostris.Services.Spotify
             };
         }
 
-        public async Task<Sections> GetListenLaterItems()
+        public async Task<Web.ViewModels.Sections> GetListenLaterItems()
         {
             var items = await listenLaterStore.Load(ListenLaterStoreName);
-            var result = new Sections();
+            var result = new Web.ViewModels.Sections();
 
             IEnumerable<Task> downloads = items
                 .GroupBy(s => s.Split(':').Skip(1).First())
@@ -69,9 +81,11 @@ namespace Caerostris.Services.Spotify
         {
             var items = await listenLaterStore.Load(ListenLaterStoreName);
             var preservedItems = items.Where(i => (i != uri));
-            // TODO: itt adatvesztés lehet, ha nincsen rendes indexeddb remove fg
             await listenLaterStore.Clear(ListenLaterStoreName);
             await listenLaterStore.Save(ListenLaterStoreName, preservedItems);
         }
+
+        internal async Task Cleanup() =>
+            await listenLaterStore.Clear(ListenLaterStoreName);
     }
 }

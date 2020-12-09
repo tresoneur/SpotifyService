@@ -7,7 +7,7 @@ namespace Caerostris.Services.Spotify.Player
     /// <remarks>
     /// Do not attempt to create more than one instance of this class in a single window.
     /// </remarks>
-    public class WebPlaybackSdkManager : IDisposable
+    public sealed class WebPlaybackSdkManager : IDisposable
     {
         private const string JsWrapper = "SpotifyService.WebPlaybackSDKWrapper";
 
@@ -24,14 +24,14 @@ namespace Caerostris.Services.Spotify.Player
         private Func<string, Task> onDeviceReady =
             async (_) => { await Task.CompletedTask; };
 
-        public WebPlaybackSdkManager(IJSRuntime injectedJsRuntime)
+        public WebPlaybackSdkManager(IJSRuntime jsRuntime)
         {
-            jsRuntime = injectedJsRuntime;
+            this.jsRuntime = jsRuntime;
             selfReference = DotNetObjectReference.Create(this);
         }
 
         /// <summary>
-        /// Call this method before you attempt to interact with this class in other any way.
+        /// Call this method before you attempt to interact with this class in any other way.
         /// This method may be called several times. This resets the inner state of the instance and all JS entities associated with it.
         /// </summary>
         /// <param name="authTokenCallback">Callback for when a valid OAuth token needs to be acquired for streaming</param>

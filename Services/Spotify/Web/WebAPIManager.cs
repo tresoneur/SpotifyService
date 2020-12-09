@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SpotifyAPI.Web;
-using Caerostris.Services.Spotify.Web.ViewModels;
-using Caerostris.Services.Spotify.Web.Extensions;
 
 namespace Caerostris.Services.Spotify.Web
 {
@@ -57,10 +55,15 @@ namespace Caerostris.Services.Spotify.Web
         public async Task SetPlayback(string? contextUri, string? trackUri)
         {
             if (contextUri is null && trackUri is null)
-                throw new ArgumentNullException("Context and track cannot both be null.");
+                throw new ArgumentException("Context and track URIs cannot both be null.");
+
             else if (contextUri is null && trackUri is not null)
                 await Api.Player.ResumePlayback(new() { Uris = new List<string> { trackUri } });
-            else
+
+            else if (contextUri is not null && trackUri is null)
+                await Api.Player.ResumePlayback(new() { ContextUri = contextUri });
+
+            else if (contextUri is not null && trackUri is not null)
                 await Api.Player.ResumePlayback(new() { ContextUri = contextUri, OffsetParam = new() { Uri = trackUri } });
         }
 
@@ -182,7 +185,7 @@ namespace Caerostris.Services.Spotify.Web
             return await Api.Search.Item(new(types, query) { Limit = 5, Market = await GetMarket() });
         }
 
-        public async Task<IEnumerable<TrackAudioFeatures>> GetAudioFeatures(IEnumerable<string> trackIds, Action<int, int> progressCallback) // TODO
+        public async Task<IEnumerable<TrackAudioFeatures>> GetAudioFeatures(IEnumerable<string> trackIds, Action<int, int> progressCallback)
         {
             audioFeatures.TrackIds = trackIds;
             return await audioFeatures.GetData(progressCallback, await GetMarket());
@@ -195,10 +198,10 @@ namespace Caerostris.Services.Spotify.Web
             await Api.Playlists.AddItems(playlistId, new(trackUris.ToList()));
 
         public async Task<IEnumerable<FullTrack>> GetTracks(IEnumerable<string> trackUris) =>
-            (await Api.Tracks.GetSeveral(new(IdsFromUris(trackUris)) { Market = await GetMarket()})).Tracks;
+            (await Api.Tracks.GetSeveral(new(IdsFromUris(trackUris)) { Market = await GetMarket() })).Tracks;
 
         public async Task<IEnumerable<FullAlbum>> GetAlbums(IEnumerable<string> albumUris) =>
-            (await Api.Albums.GetSeveral(new(IdsFromUris(albumUris)) { Market = await GetMarket()})).Albums;
+            (await Api.Albums.GetSeveral(new(IdsFromUris(albumUris)) { Market = await GetMarket() })).Albums;
 
         public async Task<IEnumerable<FullArtist>> GetArtists(IEnumerable<string> artistUris) =>
             (await Api.Artists.GetSeveral(new(IdsFromUris(artistUris)))).Artists;
@@ -219,7 +222,7 @@ namespace Caerostris.Services.Spotify.Web
         private async Task<string> GetMarket() =>
             (await GetPrivateProfile()).Country;
 
-        private List<string> IdsFromUris(IEnumerable<string> uris) =>
+        private static List<string> IdsFromUris(IEnumerable<string> uris) =>
             uris.Select(WebApiModelExtensions.IdFromUri).ToList();
 
         #endregion

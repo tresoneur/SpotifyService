@@ -1,5 +1,4 @@
-﻿/// Spotify Web Playback SDK wrapper for SpotifyService
-class WebPlaybackSdkWrapper {
+﻿class WebPlaybackSdkWrapper {
 
     constructor() {
         this.Player = null;
@@ -72,7 +71,6 @@ class WebPlaybackSdkWrapper {
     }
 }
 
-// Basic MediaSession API wrapper.
 class MediaSessionWrapper {
 
     constructor() {
@@ -138,10 +136,12 @@ class MediaSessionWrapper {
     Pause = () => { this.PlayPause(false); }
 
     PlayPause = (play) => {
-        if (play)
-            this.MockAudio.play();
-        else
-            this.MockAudio.pause();
+        try {
+            if (play)
+                this.MockAudio.play();
+            else
+                this.MockAudio.pause();
+        } catch (_) { /* The media element hasn't loaded yet. There's nothing to be done. */}
 
         this.SetAndSaveMetadata(this.LastKnownMetadata); 
     }

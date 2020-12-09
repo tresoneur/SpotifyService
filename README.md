@@ -12,13 +12,13 @@ To create a high-level Spotify API for FOSS Blazor WebAssembly projects, providi
 
 * __Authentication & authorization__: OAuth 2.0
     
-    * __Implicit grant flow__: authenticate without any backend involvement: everything is managed in the client by _SpotifyService_. Users will have to re-authorize your app every hour.
+    * __Implicit grant flow__: authenticate without any backend involvement. Users will have to re-authorize your app every hour.
     
-    * __Authorization code flow__: configure and deploy the ASP.NET Core [_SpotifyAuthServer_](https://github.com/tresoneur/SpotifyAuthServer) in just a few minutes. Users will only have to authorize your Blazor webapp once, _SpotifyService_ and the auth server will take care of the rest.
+    * __Authorization code flow__: configure and deploy the ASP.NET Core [_SpotifyAuthServer_](https://github.com/tresoneur/SpotifyAuthServer). Users will only have to authorize your Blazor webapp once, _SpotifyService_ and the supporting server will take care of the rest.
 
 * __Playback__: in the browser, using the Spotify Web Playback SDK.
 
-* __Web API__: a high-level wrapper around a WebAssembly-compatible [fork](https://github.com/tresoneur/SpotifyAPI-NET) of _JohnnyCrazy_'s [_SpotifyAPI-NET_](https://github.com/JohnnyCrazy/SpotifyAPI-NET).
+* __Web API__: a high-level wrapper around _JohnnyCrazy_'s [_SpotifyAPI-NET_](https://github.com/JohnnyCrazy/SpotifyAPI-NET).
 
     * __Playback__ 
         
@@ -53,11 +53,11 @@ Most of _SpotifyService_'s functionality was originally implemented for use in [
 
 ## Requirements
 
-Your application should use Blazor WebAssembly version '3.2.0 Release Candidate' or higher.
+Your application should use .NET 5.0.0 or higher.
 
 ## How to use
 
-* Include the [_SpotifyService_](https://github.com/tresoneur/SpotifyService) project in your solution, and run a `dotnet restore`.
+* Include the SpotifyService project in your solution and run `dotnet restore`.
 
 * Include the lines marked with '`<--`' in your `Program.cs`:
 
@@ -66,106 +66,79 @@ Your application should use Blazor WebAssembly version '3.2.0 Release Candidate'
 
     // ...
 
-    public static async Task Main(string[] args)
+    public class Program
     {
-        var builder = WebAssemblyHostBuilder.CreateDefault(args);
-        builder.RootComponents.Add<App>("app");
+        public static async Task Main(string[] args)
+            {
+                var builder = WebAssemblyHostBuilder.CreateDefault(args);
+                builder.RootComponents.Add<App>("#app");
 
-        var services = builder.Services;
+                builder.Services
+                    .AddSpotify(new() // <-- 
+                    {
+                        // If you supply a non-null value, the Authorization Code Grant workflow will be used.
+                        // (Use https!)
+                        // Otherwise, the Implicit Grant workflow will be used instead.
+                        AuthServerApiBase = "https://caerostrisauthserver.azurewebsites.net/auth",
+                        PlayerDeviceName = "Your Spotify player device name here",
+                        // Issued by Spotify, register your app and view its ID at
+                        // https://developer.spotify.com/dashboard/
+                        ClientId = "0123456789abcdef0123456789abcdef",
+                        // All permissions SpotifyService currently uses
+                        PermissionScopes = new[]
+                        {
+                            "user-read-private",
+                            "user-read-email",
+                            "user-read-playback-state",
+                            "user-modify-playback-state",
+                            "user-library-read",
+                            "user-library-modify",
+                            "user-read-currently-playing",
+                            "playlist-read-private",
+                            "playlist-read-collaborative",
+                            "playlist-modify-private",
+                            "playlist-modify-public",
+                            "streaming"
+                        }
+                    });
 
-        // ... 
+                var host = builder.Build();
 
-        // If you include the argument, the Authorization Code workflow will be used.
-        // (Use https!)
-        // If no URI is passed, the Implicit Grant workflow will be used instead.
-        services.AddSpotify("<your auth server's uri>");    // <--
-
-        var host = builder.Build();
-
-        // Learn more about permissions in the example below.
-        await host.Services.InitializeSpotify(              // <--
-            "<your app's name>",                            // <--
-            "<your app's client ID>",                       // <--
-            <permissions>);                                 // <--
-
-        await host.RunAsync();
+                await host.Services.InitializeSpotify(); // <--
+            
+                await host.RunAsync();
+            }
+        }
     }
     ```
 
-* Include the `.js` files needed for _SpotifyService_'s functionality in your `index.html`:
+* Include the JavaScript and mock audio files needed for _SpotifyService_'s functionality in your `index.html`:
 
     ```html
-    <script src="_content/SpotifyService/blazor.extensions.storage.js"></script>
-    <script src="_content/SpotifyService.IndexedDB/indexedDb.Blazor.js"></script>
-    <script src="_content/SpotifyService/spotifyservice-web-playback.js"></script>
+    <audio id="mediasession-mock-audio" src="_content/Caerostris.Services.Spotify/media/mediasession-mock-audio.mp3" autoplay loop></audio>
+    <script src="_content/Caerostris.Services.Spotify/blazor.extensions.storage.js"></script>
+    <script src="_content/Caerostris.Services.Spotify.IndexedDB/indexedDb.Blazor.js"></script>
+    <script src="_content/Caerostris.Services.Spotify/spotifyservice-web-playback.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     ```
 
-* For tips on how to use _SpotifyService_ in your Blazor components, see the [Examples section](#examples) below.
+* See some examples for using _SpotifyService_ in your Blazor components in the [Examples section](#examples) below.
 
 ## Design considerations
 
-* _SpotifyService_ publishes several events, including events for the following:
+* _SpotifyService_ publishes several events, including:
 
-    * the state of app authorization changed;
+    * Spotify authorization events;
     
-    * a UI update is needed or advised;
+    * UI update suggestions;
     
     * loading progress updates;
 
-    * the playback context changed.
+    * playback context changes.
 
 * _SpotifyService_ provides stateful services (caching, automatic track relinking, etc.), and uses the singleton dependency injection mode.
 
-* All methods, properties and events are directly accessible on the injected instance.
-
-* _SpotifyService_ includes some properties that are meant to store your application's relevant state, e.g. `SearchQuery` and `ExploreArtistUrl`.
-
 ## Examples
-
-### Initializing your SpotifyService instance (in `Program.cs`):
-
-```cs
-public class Program
-{
-    // Issued by Spotify, register your app and view its ID at
-    //  https://developer.spotify.com/dashboard/
-    private const string clientId = "0123456789abcdef0123456789abcdef";
-
-    // All permissions SpotifyService currently uses
-    private const Scope permissions = Scope.UserReadPrivate
-                                    | Scope.UserReadEmail
-                                    | Scope.UserReadPlaybackState
-                                    | Scope.UserModifyPlaybackState
-                                    | Scope.UserLibraryRead
-                                    | Scope.UserReadCurrentlyPlaying
-                                    | Scope.PlaylistReadPrivate
-                                    | Scope.PlaylistReadCollaborative
-                                    | Scope.PlaylistModifyPrivate
-                                    | Scope.PlaylistModifyPublic
-                                    | Scope.UserLibraryModify
-                                    | Scope.Streaming;
-
-    public static async Task Main(string[] args)
-    {
-        var builder = WebAssemblyHostBuilder.CreateDefault(args);
-        builder.RootComponents.Add<App>("app");
-
-        var services = builder.Services;
-
-        services.AddSpotify("https://api.example.com/auth");
-
-        var host = builder.Build();
-
-        await host.Services.InitializeSpotify(
-            "Blazor WebAssembly App", 
-            clientId, 
-            permissions);
-
-        await host.RunAsync();
-    }
-}
-```
 
 ### Fetching all of the user's saved tracks:
 
@@ -178,8 +151,8 @@ public class Program
 
     protected override async Task OnInitializedAsync()
     {
-        if (await Spotify.IsAuthGranted())
-            tracks = await Spotify.GetSavedTracks();
+        if (await Spotify.Auth.IsUserLoggedIn())
+            tracks = await Spotify.Library.GetSavedTracks();
     }
 }
 ```

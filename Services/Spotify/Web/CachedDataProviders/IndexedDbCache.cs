@@ -23,7 +23,7 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
         public async Task<IEnumerable<TData>> Load(string storeName, Action<int, int>? progressCallback = null)
         {
             var records = new List<TData>();
-            const int count = 10;
+            const int pageSize = 10;
             int cachedCount = await GetCount(storeName);
             int offset = 0;
 
@@ -33,15 +33,15 @@ namespace Caerostris.Services.Spotify.Web.CachedDataProviders
                     await indexedDb.GetPaginatedRecords<TData>(
                         new StoreIndexQuery<object> { Storename = storeName, IndexName = null /* = primary key */ },
                         offset,
-                        count);
+                        pageSize);
 
                 records.AddRange(paginatedRecords);
                 progressCallback?.Invoke(records.Count, cachedCount);
 
-                if (paginatedRecords.Count < count)
+                if (paginatedRecords.Count < pageSize)
                     break;
 
-                offset += count;
+                offset += pageSize;
             }
 
             return records;
