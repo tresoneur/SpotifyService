@@ -7,7 +7,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="AutoMapper" Version="15.1.1" />
     <PackageReference Include="Blazor.Extensions.Storage" Version="1.1.0-preview3" />
     <PackageReference Include="Caerostris.Services.Spotify.IndexedDB" Version="1.5.12-preview" />
     <PackageReference Include="Humanizer.Core" Version="2.8.26" />
